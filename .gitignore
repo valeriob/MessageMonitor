@@ -6,3 +6,5 @@ obj
 TestResults
 *.v11.suo
 packages/
+*.mdf
+*.ldf
