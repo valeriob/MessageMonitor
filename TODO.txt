@@ -1,0 +1,7 @@
+
+- Event store browsing
+
+- NServiceBus queue configuration
+- NserviceBus queue perf counter monitoring
+- NserviceBus error queue pick
+- NserviceBus error queue replay message
