@@ -1,10 +1,10 @@
-﻿using MessagesMonitor.Infrastructure;
+﻿using MessageMonitor.Infrastructure;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace MessagesMonitor.EventStore
+namespace MessageMonitor.EventStore
 {
     public class Read_Commits : Query
     {

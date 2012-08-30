@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using MessagesMonitor.EventStore;
+using MessageMonitor.EventStore;
 
-namespace MessagesMonitor
+namespace MessageMonitor
 {
     public class EventStore_ReadModel
     {

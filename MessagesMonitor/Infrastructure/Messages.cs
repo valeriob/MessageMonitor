@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace MessagesMonitor.Infrastructure
+namespace MessageMonitor.Infrastructure
 {
     public interface Query
     { 
