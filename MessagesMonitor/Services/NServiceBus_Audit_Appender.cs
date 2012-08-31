@@ -4,13 +4,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MessageMonitor.Infrastructure;
+using Raven.Client.Linq;
 
 namespace MessageMonitor.Services
 {
-    public class NServiceBus_Audit_Appender
+    public class NServiceBus_Audit_Handler
     {
         IDocumentSession Session;
-        public NServiceBus_Audit_Appender(IDocumentSession session)
+        public NServiceBus_Audit_Handler(IDocumentSession session)
         {
             Session = session;
         }
@@ -24,12 +26,27 @@ namespace MessageMonitor.Services
 
         public IEnumerable<Audit_Message_SinteticDto> Query(Browse_Audit query)
         {
-            return Session.Query<Audit_Message_SinteticDto>()
+            return Session.Query<NServiceBus_Audit_Message>()
+                .Skip(query.Skip)
+                .Take(query.Take)
+                .To_Audit_Message_SinteticDto()
                 .ToList();
         }
-    }
 
-    public class Browse_Audit
+        public void Statistics()
+        {
+            RavenQueryStatistics stats;
+            var query = Session.Query<Group_Result, Group_Result_Index>()
+                .Statistics(out stats);
+            var asd = query.ToList();
+        }
+    }
+    public class Paging 
+    {
+        public int Skip { get; set; }
+        public int Take { get; set; }
+    }
+    public class Browse_Audit : Paging
     {
         public DateTime? From { get; set; }
         public DateTime? UpTo { get; set; }

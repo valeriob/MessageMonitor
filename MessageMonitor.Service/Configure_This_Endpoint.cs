@@ -1,6 +1,7 @@
 ﻿using NServiceBus;
 using System;
 using System.Security.Principal;
+using Autofac;
 
 namespace MessageMonitor.Service
 {
@@ -28,7 +29,7 @@ namespace MessageMonitor.Service
                //.AllowSubscribeToSelf();
                .LoadMessageHandlers();
 
-            Configure.Instance.Configurer.ConfigureComponent<Mutator>(DependencyLifecycle.InstancePerCall);
+            //Configure.Instance.Configurer.ConfigureComponent<Mutator>(DependencyLifecycle.InstancePerCall);
         }
 
         
@@ -45,6 +46,10 @@ namespace MessageMonitor.Service
 
             //var fault = new NServiceBus_MSMQ_Fault_Queue_Listener(Bus, "error");
             //audit.Start();
+
+            var container = MessageMonitor.Infrastructure.Container.Instance();
+            var service = container.Resolve<MessageMonitor.Services.NServiceBus_Audit_Handler>();
+            service.Statistics();
         }
 
         public void Stop()

@@ -107,32 +107,6 @@ namespace MessageMonitor.Service
             Queue.PeekCompleted += queue_PeekCompleted;
         }
 
-        //void Queue_PeekCompleted(object sender, PeekCompletedEventArgs e)
-        //{
-        //    try
-        //    {
-        //       // Queue.EndPeek(Peek_Result);
-        //        //using (var transaction = new TransactionScope())
-        //        using(var transaction = new MessageQueueTransaction())
-        //        {
-        //            transaction.Begin();
-        //            var message = Queue.Receive(TimeSpan.Zero,  transaction );
-                 
-        //            var tm = NServiceBus.Utils.MsmqUtilities.Convert(message);
-
-        //            var audit = tm.To_NServiceBus_Audit_Message();
-        //            Bus.SendLocal(audit);
-
-        //            transaction.Commit();
-        //        }
-        //    }
-        //    catch (Exception ex) 
-        //    {
-        //        Debug.WriteLine(ex.Message);
-        //        Debug.WriteLine(ex.StackTrace);
-        //    }
-        //    Queue.BeginPeek();
-        //}
 
         private void queue_PeekCompleted(object sender, PeekCompletedEventArgs e)
         {
@@ -151,12 +125,10 @@ namespace MessageMonitor.Service
             }
             catch (Exception ex)
             {
-                // abort if processing fails
                 transaction.Abort();
             }
             finally
             {
-                // start watching for another message
                 queue.BeginPeek();
             }
         }

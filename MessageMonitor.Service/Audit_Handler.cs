@@ -13,7 +13,7 @@ namespace MessageMonitor.Service
 {
     public class Audit_Handler : IHandleMessages<NServiceBus_Audit_Message>, IHandleMessages<NServiceBus_Failed_Message>
     {
-        public NServiceBus_Audit_Appender Service { get; set; }
+        public NServiceBus_Audit_Handler Service { get; set; }
 
         public void Handle(NServiceBus_Audit_Message message)
         {

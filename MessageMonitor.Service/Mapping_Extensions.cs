@@ -65,7 +65,9 @@ namespace MessageMonitor.Service
                 ProcessingStarted = headers.Try_Get_And_Remove(NServiceBus.Unicast.Monitoring.Headers.ProcessingStarted).To_DateTime(),
                 ProcessingEnded = headers.Try_Get_And_Remove(NServiceBus.Unicast.Monitoring.Headers.ProcessingEnded).To_DateTime(),
                 OriginatingAddress = headers.Try_Get_And_Remove("NServiceBus.OriginatingAddress"),
-
+                EnclosedMessageTypes = headers.Try_Get_And_Remove("NServiceBus.EnclosedMessageTypes")
+                        .Split(new[]{";"}, StringSplitOptions.RemoveEmptyEntries),
+ 
                 XmlBody = body,
 
                 Message_Id = transportMessage.Id,

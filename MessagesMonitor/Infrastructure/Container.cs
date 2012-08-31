@@ -26,13 +26,15 @@ namespace MessageMonitor.Infrastructure
             var documentStore = new DocumentStore { Url = "http://localhost:8081"};
             documentStore.Initialize();
             documentStore.DatabaseCommands.EnsureDatabaseExists(Database_Name);
-         
+            documentStore.DefaultDatabase = Database_Name;
 
+            Raven.Client.Indexes.IndexCreation.CreateIndexes(typeof(Group_Result_Index).Assembly, documentStore);
+            
             builder.RegisterInstance(documentStore).As<IDocumentStore>();
             builder.Register<IDocumentSession>(f => f.Resolve<IDocumentStore>().OpenSession(Database_Name));
 
           
-            builder.RegisterType<NServiceBus_Audit_Appender>();
+            builder.RegisterType<NServiceBus_Audit_Handler>();
 
             _instance = builder.Build();
 
