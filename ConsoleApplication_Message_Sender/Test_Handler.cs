@@ -10,7 +10,16 @@ namespace ConsoleApplication_Message_Sender
     {
         public void Handle(object message)
         {
-            //throw new NotImplementedException();
+            //throw new My_Custsom_Exception("my very reason", message);
+        }
+    }
+
+    public class My_Custsom_Exception : Exception
+    {
+        public object Message { get; set; }
+        public My_Custsom_Exception(string message, object msg):base(message)
+        {
+            Message = msg;
         }
     }
 }

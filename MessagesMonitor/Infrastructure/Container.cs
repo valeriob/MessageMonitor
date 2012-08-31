@@ -23,7 +23,7 @@ namespace MessageMonitor.Infrastructure
 
             var builder = new ContainerBuilder();
 
-            var documentStore = new DocumentStore { Url = "http://localhost:8080"};
+            var documentStore = new DocumentStore { Url = "http://localhost:8081"};
             documentStore.Initialize();
             documentStore.DatabaseCommands.EnsureDatabaseExists(Database_Name);
          

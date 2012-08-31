@@ -61,6 +61,8 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Messaging" />
+    <Reference Include="System.Transactions" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -70,6 +72,10 @@
   <ItemGroup>
     <Compile Include="Audit_Handler.cs" />
     <Compile Include="Configure_This_Endpoint.cs" />
+    <Compile Include="Mapping_Extensions.cs" />
+    <Compile Include="Extensions.cs" />
+    <Compile Include="NServiceBus_Queue_Listener.cs" />
+    <Compile Include="NServiceBus_Failed_Message.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace MessageMonitor.Service
 {
-    public class Audit_Handler : IHandleMessages<NServiceBus_Audit_Message>
+    public class Audit_Handler : IHandleMessages<NServiceBus_Audit_Message>, IHandleMessages<NServiceBus_Failed_Message>
     {
         public NServiceBus_Audit_Appender Service { get; set; }
 
@@ -19,12 +19,22 @@ namespace MessageMonitor.Service
         {
             Service.Append(message);
         }
+
+        public void Handle(NServiceBus_Failed_Message message)
+        {
+            // Notifica
+        }
     }
 
     public class Mutator : NServiceBus.MessageMutator.IMutateIncomingTransportMessages, NServiceBus.MessageMutator.IMutateIncomingMessages
     {
         public void MutateIncoming(NServiceBus.Unicast.Transport.TransportMessage transportMessage)
         {
+            if (transportMessage.Is_Failed_Message())
+            {
+                var failedMessage = transportMessage.To_NServiceBus_Failed_Message();
+            }
+
             var body = Encoding.UTF8.GetString(transportMessage.Body);
 
             var serializer = new XmlMessageSerializer(new MessageMapper());

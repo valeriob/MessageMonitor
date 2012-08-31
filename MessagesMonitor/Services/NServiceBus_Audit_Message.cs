@@ -10,6 +10,15 @@ namespace MessageMonitor
     {
         public string Id { get; set; }
 
+        public string Version { get; set; }
+        public DateTime? TimeSent { get; set; }
+        public string[] EnclosedMessageTypes { get; set; }
+        public string WinIdName { get; set; }
+        public string CorrId { get; set; }
+        public DateTime? ProcessingStarted { get; set; }
+        public DateTime? ProcessingEnded { get; set; }
+        public string OriginatingAddress { get; set; }
+
         public string XmlBody { get; set; }
         public List<Header> Headers { get; set; }
 
@@ -19,7 +28,6 @@ namespace MessageMonitor
 
         public string MessageIntent { get; set; }
         public string ReplyToAddress { get; set; }
-        public DateTime? TimeSent { get; set; }
     }
     public class Header
     {
