@@ -73,6 +73,7 @@ namespace File_System_ES
             var data_Address = Current_Pointer();
             Write_Object(value, data_Address);
 
+            var leaf = Find_Leaf_Node(key);
             if (leaf.Has_Empty_Slot())
             {
                 leaf.Insert_Value_Address(key, data_Address);
