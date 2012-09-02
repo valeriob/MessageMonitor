@@ -38,7 +38,11 @@ namespace File_System_ES
             catch (Exception) 
             {
                 root = Node.Create_New(Size, false);
+<<<<<<< HEAD
                 //Write_Node(root, 0);
+=======
+                Write_Node(root, 0);
+>>>>>>> 56612ffca0b64422d9384e9955709dc21b827feb
             }
         }
         private long _currentPointer;
@@ -57,6 +61,7 @@ namespace File_System_ES
 
         public void Put(int key, T value)
         {
+<<<<<<< HEAD
             //if (Root == null)
             //{
             //    First_Put2(key, value);
@@ -67,12 +72,21 @@ namespace File_System_ES
             if (leaf == null)
             {
                 First_Put2(key, value);
+=======
+            if (Root == null)
+            {
+                First_Put(key, value);
+>>>>>>> 56612ffca0b64422d9384e9955709dc21b827feb
                 return;
             }
 
             var data_Address = Current_Pointer();
             Write_Object(value, data_Address);
 
+<<<<<<< HEAD
+=======
+            var leaf = Find_Leaf_Node(key);
+>>>>>>> 56612ffca0b64422d9384e9955709dc21b827feb
             if (leaf.Has_Empty_Slot())
             {
                 leaf.Insert_Value_Address(key, data_Address);
@@ -101,6 +115,7 @@ namespace File_System_ES
             // page split not
         }
 
+<<<<<<< HEAD
         protected void First_Put2(int key, T value)
         {
             var node = Node.Create_New(Size, true);
@@ -114,6 +129,8 @@ namespace File_System_ES
 
             UncommittedRoot = node;
         }
+=======
+>>>>>>> 56612ffca0b64422d9384e9955709dc21b827feb
         protected void First_Put(int key, T value)
         {
             Root = Read_Node(null, 0);
