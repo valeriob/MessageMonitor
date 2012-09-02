@@ -1,4 +1,6 @@
-﻿using MessageMonitor.Services;
+﻿using MessageMonitor.Service.Messages;
+using MessageMonitor.Service.Saga;
+using MessageMonitor.Services;
 using NServiceBus;
 using NServiceBus.MessageInterfaces.MessageMapper.Reflection;
 using NServiceBus.Serializers.XML;
@@ -26,41 +28,27 @@ namespace MessageMonitor.Service
         }
     }
 
-    public class Mutator : NServiceBus.MessageMutator.IMutateIncomingTransportMessages, NServiceBus.MessageMutator.IMutateIncomingMessages
+
+    public class Error_Queues_Monitoring_Handlers : IHandleMessages<Start_Monitoring_Queue>, 
+        IHandleMessages<Queue_Alarm>
     {
-        public void MutateIncoming(NServiceBus.Unicast.Transport.TransportMessage transportMessage)
+        public IBus Bus { get; set; }
+
+        public void Handle(Start_Monitoring_Queue message)
         {
-            if (transportMessage.Is_Failed_Message())
-            {
-                var failedMessage = transportMessage.To_NServiceBus_Failed_Message();
-            }
-
-            var body = Encoding.UTF8.GetString(transportMessage.Body);
-
-            var serializer = new XmlMessageSerializer(new MessageMapper());
-
-            using (var buffer = new MemoryStream())
-            {
-                serializer.Serialize(new[] { new NServiceBus_Audit_Message 
-                { 
-                    XmlBody = body, 
-                    Headers = transportMessage.Headers.Select(p=> new Header{ Name= p.Key, Value = p.Value}).ToList(),
-                    Message_Id = transportMessage.Id,
-                    CorrelationId = transportMessage.CorrelationId, 
-                    IdForCorrelation = transportMessage.IdForCorrelation,
-                    MessageIntent = transportMessage.MessageIntent +"",
-                    ReplyToAddress = transportMessage.ReplyToAddress.ToString(), 
-                    TimeSent = transportMessage.TimeSent,
-                } }, buffer);
-
-                transportMessage.Body = buffer.GetBuffer();
-            }
+            var manager = MSMQ_Multi_Queue_Notification_Listener.Instance();
+            manager.Start_Monitoring_Queue(Address.Parse(message.Queue_Name));
         }
 
-        public object MutateIncoming(object message)
+        public void Handle(Queue_Alarm message)
         {
-            return message;
+            Bus.Send(new Quarantine_Error_Queue 
+            { 
+                Queue_Name = message.Queue_Name, 
+                Frequency_Check = TimeSpan.FromMinutes(1)
+            });
         }
     }
+   
 
 }

@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Transactions;
 using NServiceBus;
+using MessageMonitor.Service.Messages;
 
 namespace MessageMonitor.Service
 {
@@ -27,22 +28,60 @@ namespace MessageMonitor.Service
         }
     }
 
-    public class NServiceBus_MSMQ_Fault_Queue_Listener : MSMQ_Queue_Listener
+    public class MSMQ_Multi_Queue_Notification_Listener 
     {
         protected IBus Bus { get; set; }
+        public List<Address> Queues_To_Monitor { get; set; }
 
 
-        public NServiceBus_MSMQ_Fault_Queue_Listener(IBus bus, string queueName) : this(bus, Address.Parse(queueName)) { }
+        static MSMQ_Multi_Queue_Notification_Listener _instance;
+        public static MSMQ_Multi_Queue_Notification_Listener Instance()
+        {
+            return _instance;
+        }
+        public static void Init(IBus bus) 
+        {
+            _instance = new MSMQ_Multi_Queue_Notification_Listener(bus);
+        }
 
-        public NServiceBus_MSMQ_Fault_Queue_Listener(IBus bus, Address queueName)
+        public MSMQ_Multi_Queue_Notification_Listener(IBus bus)
+        {
+            Bus = bus;
+            Queues_To_Monitor = new List<Address>();
+        }
+
+
+        public void Start_Monitoring_Queue(string queueName)
+        {
+            Start_Monitoring_Queue(Address.Parse(queueName));
+        }
+        public void Start_Monitoring_Queue(Address queueName)
         {
             var path = NServiceBus.Utils.MsmqUtilities.GetFullPath(queueName);
-            Queue = new MessageQueue(path, QueueAccessMode.PeekAndAdmin);
+            var queue = new MessageQueue(path, QueueAccessMode.PeekAndAdmin);
             var mpf = new System.Messaging.MessagePropertyFilter();
             mpf.SetAll();
-            Queue.MessageReadPropertyFilter = mpf;
+            queue.MessageReadPropertyFilter = mpf;
 
-            Queue.PeekCompleted += queue_PeekCompleted;
+            queue.PeekCompleted += queue_PeekCompleted;
+
+            if(!Queues_To_Monitor.Contains(queueName))
+                Queues_To_Monitor.Add(queueName);
+        }
+
+
+        void queue_PeekCompleted(object sender, PeekCompletedEventArgs e)
+        {
+            var queue = sender as MessageQueue;
+            if (e.Message == null || queue == null)
+                return;
+
+            Bus.Publish(new Queue_Alarm 
+            { 
+                Id= Guid.NewGuid(), 
+                Timestamp = DateTime.Now,
+                Queue_Name = queue.FormatName
+            });
         }
 
 
@@ -66,23 +105,9 @@ namespace MessageMonitor.Service
                     tm.To_NServiceBus_Failed_Message();
             }
         }
-
-        void queue_PeekCompleted(object sender, PeekCompletedEventArgs e)
-        {
-            var tm = NServiceBus.Utils.MsmqUtilities.Convert( e.Message);
-
-            if (tm.Is_Failed_Message())
-            {
-                var failed = tm.To_NServiceBus_Failed_Message();
-                Bus.Publish(failed);
-            }
-        }
-
-        public override void Start()
-        {
-            Peek_Result = Queue.BeginPeek();
-        }
     }
+
+
 
 
 

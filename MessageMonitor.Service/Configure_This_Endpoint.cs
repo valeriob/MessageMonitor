@@ -41,6 +41,9 @@ namespace MessageMonitor.Service
 
             NServiceBus.Utils.MsmqUtilities.CreateQueueIfNecessary(queueName, WindowsIdentity.GetCurrent().Name);
 
+            MSMQ_Multi_Queue_Notification_Listener.Init(Bus);
+            var faultMonitor = MSMQ_Multi_Queue_Notification_Listener.Instance();
+
             var audit = new NServiceBus_MSMQ_Audit_Queue_Listener(Bus, queueName);
             audit.Start();
 

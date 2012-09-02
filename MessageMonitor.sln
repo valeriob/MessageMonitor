@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessagesMonitor", "MessagesMonitor\MessagesMonitor.csproj", "{94F36BDE-E041-4E03-95B9-F9D670261B72}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageMonitor", "MessagesMonitor\MessageMonitor.csproj", "{94F36BDE-E041-4E03-95B9-F9D670261B72}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{785D1D44-029C-4891-84A8-6DB4A7AD5FDA}"
 	ProjectSection(SolutionItems) = preProject
@@ -26,6 +26,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{27A81D
 		.nuget\NuGet.exe = .nuget\NuGet.exe
 		.nuget\NuGet.targets = .nuget\NuGet.targets
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Load_Assembly_Debyg", "Load_Assembly_Debyg\Load_Assembly_Debyg.csproj", "{FB7B2466-902D-4D4A-A701-62BB2144D0D2}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Spiking", "Spiking", "{B6008042-A3B9-44AC-9165-4D170A1E38CF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "File_System_ES", "File_System_ES\File_System_ES.csproj", "{DF05D5AA-B0BC-48ED-80CF-17584839BE81}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -57,6 +63,14 @@ Global
 		{4118744E-1BA2-4013-9CA2-23CC70BD30AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4118744E-1BA2-4013-9CA2-23CC70BD30AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4118744E-1BA2-4013-9CA2-23CC70BD30AF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FB7B2466-902D-4D4A-A701-62BB2144D0D2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FB7B2466-902D-4D4A-A701-62BB2144D0D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FB7B2466-902D-4D4A-A701-62BB2144D0D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FB7B2466-902D-4D4A-A701-62BB2144D0D2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DF05D5AA-B0BC-48ED-80CF-17584839BE81}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DF05D5AA-B0BC-48ED-80CF-17584839BE81}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DF05D5AA-B0BC-48ED-80CF-17584839BE81}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DF05D5AA-B0BC-48ED-80CF-17584839BE81}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -65,5 +79,7 @@ Global
 		{6E0AB943-35EF-484A-A047-B37561A10086} = {AE997B79-6EB1-40AA-A0BA-E5B551878B77}
 		{B759557F-5440-45C6-BEC6-9DF2F4EAF3A5} = {AE997B79-6EB1-40AA-A0BA-E5B551878B77}
 		{FF0EA319-3CB4-4BAA-BE41-361BB24A6B52} = {AE997B79-6EB1-40AA-A0BA-E5B551878B77}
+		{FB7B2466-902D-4D4A-A701-62BB2144D0D2} = {AE997B79-6EB1-40AA-A0BA-E5B551878B77}
+		{DF05D5AA-B0BC-48ED-80CF-17584839BE81} = {B6008042-A3B9-44AC-9165-4D170A1E38CF}
 	EndGlobalSection
 EndGlobal
