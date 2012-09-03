@@ -11,17 +11,12 @@ namespace File_System_ES
     {
         static void Main(string[] args)
         {
-            string result;
-
             var stream = new MemoryStream();
-            var tree = new BPlusTree<string>(stream);
-
+            string result;
+            var tree = new V3.BPlusTree<string>(stream);
 
             tree.Put(0, "ciao 0");
             result = tree.Get(0);
-
-            //tree.Put(1, "ciao 1");
-            //result = tree.Get(1);
 
             tree.Put(2, "ciao 2");
             result = tree.Get(2);
@@ -29,22 +24,50 @@ namespace File_System_ES
             tree.Put(3, "ciao 3");
             result = tree.Get(3);
 
+            //tree.Put(4, "ciao 4");
+            //result = tree.Get(4);
+
             tree.Put(1, "ciao 1");
             result = tree.Get(1);
-
-            tree.Put(4, "ciao 4");
-            result = tree.Get(4);
-
-            tree.Put(5, "ciao 5");
-            result = tree.Get(5);
-
-
-            tree.Put(6, "ciao 6");
-            result = tree.Get(6);
         }
 
+        //static void Main(string[] args)
+        //{
+        //    string result;
+
+        //    var stream = new MemoryStream();
+        //    var tree = new BPlusTree<string>(stream);
+
+
+        //    tree.Put(0, "ciao 0");
+        //    result = tree.Get(0);
+
+        //    //tree.Put(1, "ciao 1");
+        //    //result = tree.Get(1);
+
+        //    tree.Put(2, "ciao 2");
+        //    result = tree.Get(2);
+
+        //    tree.Put(3, "ciao 3");
+        //    result = tree.Get(3);
+
+        //    tree.Put(1, "ciao 1");
+        //    result = tree.Get(1);
+
+        //    tree.Put(4, "ciao 4");
+        //    result = tree.Get(4);
+
+        //    tree.Put(5, "ciao 5");
+        //    result = tree.Get(5);
+
+
+        //    tree.Put(6, "ciao 6");
+        //    result = tree.Get(6);
+        //}
+
+
         static FileStream file;
-        static void Main_Old(string[] args)
+        static void Main_old(string[] args)
         {
             string fileName ="stream.dat";
 
@@ -53,20 +76,16 @@ namespace File_System_ES
 
             file = File.Open("index.dat", FileMode.OpenOrCreate);
 
-            //var memory = new MemoryStream();
-
             var opts = new CSharpTest.Net.Collections.BPlusTree<int, int>.OptionsV2(PrimitiveSerializer.Int32, PrimitiveSerializer.Int32) 
             { 
-                BTreeOrder = 1, 
+                BTreeOrder = 4, 
                 FileName = "file", 
                 CreateFile= CSharpTest.Net.Collections.CreatePolicy.IfNeeded,
-                //StorageSystem = new BTreeStreamStorage(new TransactedCompoundFile.Options { Stream = file, CreateNew = true }),
                 StorageType = CSharpTest.Net.Collections.StorageType.Disk,
             };
             var index = new CSharpTest.Net.Collections.BPlusTree<int, int>(opts);
 
             var id = Guid.Empty;
-            //index[id] = new Stream_Head { Id = id, Version=1, Commits = new long[1]{ 123131231 } };
             index[0] = 0;
             index[2] = 2;
             index[3] = 3;
@@ -75,17 +94,8 @@ namespace File_System_ES
             
         }
 
-        static void Init()
-        {
-            //var writer = new StreamWriter(file);
-            //writer.Write(
-        }
-
-        static void Get_Free_Page()
-        { 
-        
-        }
     }
+
     public class Head_Serializer : ISerializer<Stream_Head>
     {
         public Stream_Head ReadFrom(Stream stream)

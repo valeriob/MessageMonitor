@@ -50,6 +50,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BPTree.cs" />
+    <Compile Include="BPTree_V2.cs" />
+    <Compile Include="BPTree_V3.cs" />
+    <Compile Include="BPTree_V3.persistence.cs" />
+    <Compile Include="BPTree_V3.Node.cs" />
+    <Compile Include="BPTree.persistence.cs" />
+    <Compile Include="BPTree.node.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
