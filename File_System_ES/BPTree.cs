@@ -83,22 +83,56 @@ namespace File_System_ES
             }
             else
             {
-                if (leaf.Parent.Has_Empty_Slot())
+                var split = leaf.Split_Node(key, data_Address);
+                //if (key > split.Second.Children[0].Key)
+                //    split.Second.Insert_Value_Address(key, data_Address);
+                //else
+                //    split.First.Insert_Value_Address(key, data_Address);
+                Write_Node(split.First);
+                Write_Node(split.Second);
+                R_Put(split);
+
+                //if (leaf.Parent.Has_Empty_Slot())
+                //{
+                //    var newLeaf = Node.Create_New(Size, true);
+                //    newLeaf.Insert_Value_Address(key, data_Address);
+                //    Write_Node(newLeaf);
+
+                //    // TODO split ?!?!?
+                //    leaf.Parent.Insert_Child_Address(key, newLeaf.Address);
+
+                //    Update_Node(leaf.Parent);
+                //}
+            }
+        }
+
+        protected void R_Put(Split_Result split)
+        {
+            if (split.Parent == null)
+            {
+                var parent = Node.Create_New(Size, false);
+                parent.First_Child = split.First.Address;
+                parent.Insert_Child_Address(split.Second.Children[0].Key, split.Second.Address);
+
+                Write_Node(parent);
+                UncommittedRoot = parent;
+            }
+            else
+            {
+                if (split.Parent.Has_Empty_Slot())
                 {
-                    var newLeaf = Node.Create_New(Size, true);
-                    newLeaf.Insert_Value_Address(key, data_Address);
-                    Write_Node(newLeaf);
 
-                    // TODO split ?!?!?
-                    leaf.Parent.Insert_Child_Address(key, newLeaf.Address);
+                }
+                else
+                {
+                    var parentSplit = split.Parent.Split_Node(0, 0);
+                    Write_Node(parentSplit.First);
+                    Write_Node(parentSplit.Second);
 
-                    Update_Node(leaf.Parent);
+                    R_Put(parentSplit);
                 }
             }
-
-
-            // TODO HARD, aggiunta livello !
-            // page split not
+           
         }
 
         protected void First_Put2(int key, T value)
@@ -202,11 +236,15 @@ namespace File_System_ES
         public long First_Child { get; set; }
         public bool IsLeaf { get; set; }
         public File_Address[] Children { get; set; }
+        
         public Node Parent { get; set; }
         public long Address { get; set; }
 
         protected Node(int size, bool isLeaf) 
         {
+            if (size % 2 != 0)
+                throw new Exception("Size must be power of 2");
+
             IsLeaf = isLeaf;
             Children = new File_Address[size];
         }
@@ -287,6 +325,69 @@ namespace File_System_ES
             Children[idx] = new File_Address { IsValid = true, Key = key, Address = address };
         }
 
+
+        public Split_Result Split_Node(int key, long address)
+        {
+            if (!Children.All(v => v.IsValid))
+                throw new Exception("Node is not complete !");
+
+            var result = new Split_Result
+            {
+                First = Create_New(Children.Length, IsLeaf),
+                Second = Create_New(Children.Length, IsLeaf),
+                Parent = Parent,
+            };
+
+            if (key > Children.Last().Key)
+            {
+                result.First = this;
+                result.Second.Insert_Value_Address(key, address);
+                return result;
+            }
+
+            var temp = new File_Address[Children.Length +1];
+            Array.Copy(Children, temp, Children.Length);
+            temp[Children.Length] = new File_Address { IsValid = true, Key = key, Address = address };
+            Array.Sort(temp);
+
+            int asd = Math.Min(temp.Length / 2, Children.Length);
+          
+            for (int i = 0; i < temp.Length / 2; i++)
+                result.First.Children[i] = temp[i];
+
+            for (int i = Children.Length / 2; i < temp.Length; i++)
+                result.Second.Children[i - (Children.Length / 2)] = temp[i];
+
+            return result;
+        }
+
+        //public Split_Result Split_Node(int key, long address)
+        //{
+        //    if (!Children.All(v=> v.IsValid))
+        //        throw new Exception("Node is not complete !");
+
+        //    var result = new Split_Result 
+        //    {
+        //        Second = Create_New(Children.Length, IsLeaf),
+        //        Parent = Parent, 
+        //    };
+        //    if (Children.Last().Key < key)
+        //        result.First = this;
+        //    else
+        //    {
+        //        result.First = Create_New(Children.Length, IsLeaf);
+
+        //        for (int i = 0; i < Children.Length / 2; i++)
+        //            result.First.Children[i] = Children[i];
+
+        //        result.Second.Children[0] = new File_Address { IsValid = true, Address = address, Key = key };
+
+        //        for (int i = Children.Length / 2; i < Children.Length; i++)
+        //            result.Second.Children[i - (Children.Length / 2)] = Children[i];
+        //    }
+        //    return result;
+        //}
+
         public override string ToString()
         {
             var keys = string.Join(",", Children.Where(c => c.IsValid).Select(s => s.Key));
@@ -300,8 +401,10 @@ namespace File_System_ES
             return new Node(size, isLeaf);
         }
     }
+
+
     [Serializable]
-    public struct File_Address
+    public struct File_Address : IComparable<File_Address>
     {
         public bool IsValid { get; set; }
 
@@ -315,6 +418,21 @@ namespace File_System_ES
             else
                 return string.Format("Key {0}, Address : {1}", Key, Address);
         }
+
+        public int CompareTo(File_Address other)
+        {
+            return Comparer<int>.Default.Compare(Key, other.Key);
+        }
+    }
+
+
+    public class Split_Result
+    {
+        public Node First { get; set; }
+        public Node Second { get; set; }
+
+        public Node Parent { get; set; }
+        public int Key { get; set; }
     }
 
 }

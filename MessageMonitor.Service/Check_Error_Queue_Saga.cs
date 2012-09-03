@@ -61,7 +61,8 @@ namespace MessageMonitor.Service.Saga
         }
         protected bool Queue_Contains_Messages()
         {
-            var path = NServiceBus.Utils.MsmqUtilities.GetFullPath(Data.Queue_Name);
+            var address = Address.Parse(Data.Queue_Name);
+            var path = NServiceBus.Utils.MsmqUtilities.GetFullPath(address);
             using (var queue = new MessageQueue(path, QueueAccessMode.PeekAndAdmin))
             {
                 var mpf = new MessagePropertyFilter();
