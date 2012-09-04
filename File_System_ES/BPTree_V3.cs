@@ -19,7 +19,7 @@ namespace File_System_ES.V3
 
         public BPlusTree(Stream stream)
         {
-            Size = 3;
+            Size = 11;
             Stream = stream;
             Init();
         }
@@ -41,6 +41,7 @@ namespace File_System_ES.V3
             {
                 root = Node.Create_New(Size, true);
                 Write_Node(root, 0);
+                Root = root;
             }
         }
 
@@ -56,9 +57,17 @@ namespace File_System_ES.V3
         public void Put(int key, T value)
         {
             var leaf = Find_Leaf_Node(key);
- 
+
             var data_Address = Current_Pointer();
             Write_Object(value, data_Address);
+
+            for(int i=0; i< leaf.Key_Num; i++)
+                if (key == leaf.Keys[i])
+                {
+                    //leaf.Pointers[i] = data_Address;
+                    //Update_Node(leaf);
+                    return;
+                }
 
             Insert_in_node(leaf, key, data_Address);
 
@@ -111,7 +120,9 @@ namespace File_System_ES.V3
             }
             else
                 Write_Node(newNode);
-            Write_Node(node);
+
+            Update_Node(node);
+           
             if (node.Parent == null)
             {
 
@@ -120,29 +131,31 @@ namespace File_System_ES.V3
                 Root.Pointers[0] = node.Address;
                 Root.Pointers[1] = newNode.Address;
                 Root.Key_Num = 1;
-                Write_Node(Root,0);
+                node.Parent = Root;
+                Write_Node(Root);
 
                 node.Parent = newNode.Parent = Root;
             }
             else
             {
-                node.Parent = newNode.Parent;
+                newNode.Parent = node.Parent;
                 Insert_in_node(node.Parent, mid_Key, newNode.Address);
             }
         }
 
         protected Node Find_Leaf_Node(int key)
         {
-            Node node = Read_Node(null, 0);
+            Node node = Root;// Read_Node(null, 0);
             if (UncommittedRoot != null)
                 node = UncommittedRoot;
-
+            int depth = 0;
             while (!node.IsLeaf)
             {
                 for (int i = 0; i <= node.Key_Num; i++)
                     if (i == node.Key_Num || key < node.Keys[i])
                     {
                         node = Read_Node(node, node.Pointers[i]);
+                        depth++;
                         break;
                     }
             }

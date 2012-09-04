@@ -2,13 +2,14 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 
 namespace File_System_ES.V3
 {
     [Serializable]
-    public class Node 
+    public class Node : ISerializable
     {
         //public long First_Child { get; set; }
         public bool IsLeaf { get; set; }
@@ -36,6 +37,20 @@ namespace File_System_ES.V3
         }
 
 
+        public Node(bool isLeaf, int[] keys, long[] pointers, int key_num)
+        {
+            IsLeaf = isLeaf;
+            Keys = keys;
+            Pointers = pointers;
+            Key_Num = key_num;
+        }
+        protected Node(SerializationInfo info, StreamingContext ctx) 
+        {
+            IsLeaf= info.GetBoolean("isLeaf");
+            Keys = (int[])info.GetValue("keys", typeof(int[]));
+            Pointers = (long[])info.GetValue("pointers", typeof(long[]));
+            Key_Num = info.GetInt32("key_num");
+        }
 
         //public long Get_Child_Node_Address(int key)
         //{
@@ -86,15 +101,23 @@ namespace File_System_ES.V3
 
             string root = Parent == null ? "(Root)" : "";
             if (IsLeaf)
-                return string.Format("{1} Leaf : {0}", keys, root);
+                return string.Format("{2} {1} Leaf : {0}", keys, root, Address);
             else
-                return string.Format("{1} Node : {0}", keys, root);
+                return string.Format("{2} {1} Node : {0}", keys, root, Address);
         }
 
 
         public static Node Create_New(int size, bool isLeaf)
         { 
             return new Node(size, isLeaf);
+        }
+
+        void ISerializable.GetObjectData(SerializationInfo info, StreamingContext ctx)
+        {
+            info.AddValue("isLeaf", this.IsLeaf);
+            info.AddValue("keys", this.Keys);
+            info.AddValue("pointers", this.Pointers);
+            info.AddValue("key_num", this.Key_Num);
         }
     }
 

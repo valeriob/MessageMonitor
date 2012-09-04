@@ -1,6 +1,7 @@
 ﻿using CSharpTest.Net.Serialization;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -11,9 +12,31 @@ namespace File_System_ES
     {
         static void Main(string[] args)
         {
-            var stream = new MemoryStream();
+            Stream stream = new MemoryStream();
+            //stream = File.Open("index.dat", FileMode.Truncate);
             string result;
             var tree = new V3.BPlusTree<string>(stream);
+            var rnd = new Random(DateTime.Now.Millisecond);
+            int n = 100000;
+            var watch = new Stopwatch();
+            watch.Start();
+
+            for (int i = 0; i < n; i++)
+            {
+                tree.Put(i, "text about " + i);
+            }
+
+            for (int i = 0; i < n; i++)
+            {
+                result = tree.Get(i);
+                Debug.Assert(result == "text about " + i);
+            }
+
+            watch.Stop();
+            Console.WriteLine(watch.Elapsed);
+            Console.ReadLine();
+
+            return;
 
             tree.Put(0, "ciao 0");
             result = tree.Get(0);
