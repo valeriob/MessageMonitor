@@ -66,6 +66,29 @@ namespace File_System_ES.V3
 
             Insert_in_node(leaf, key, data_Address);
         }
+        public bool Delete(int key)
+        {
+            var leaf = Find_Leaf_Node(key);
+            for (int i = 0; i < leaf.Key_Num; i++)
+                if (key == leaf.Keys[i])
+                {
+                    Delete_Key_In_Node(leaf, key);
+                    Update_Node(leaf);
+                    return true;
+                }
+            return false;
+        }
+
+        protected void Delete_Key_In_Node(Node node, int key)
+        {
+            int x = 0;
+            while (key != node.Keys[x]) x++;
+            for (int i = x; i < node.Key_Num - 1; i++)
+                node.Keys[i] = node.Keys[i + 1];
+            for (int i = x + 1; i < node.Key_Num; i++)
+                node.Pointers[i] = node.Pointers[i + 1];
+            node.Key_Num--;
+        }
 
         protected void Insert_in_node(Node node, int key, long address)
         {
