@@ -106,14 +106,14 @@ namespace File_System_ES.V3
                 node.Key_Num++;
                 newNode.Pointers[0] = node.Pointers[0];
                 Write_Node(newNode);
-                node.Pointers[1] = newNode.Address;
+                node.Pointers[0] = newNode.Address;
                 mid_Key = node.Keys[Size / 2 + 1];
             }
             else
                 Write_Node(newNode);
             if (node.Parent == null)
             {
-                node.IsLeaf = false;
+                //node.IsLeaf = false;
                 Write_Node(node);
 
                 Root = Node.Create_New(Size, false);
