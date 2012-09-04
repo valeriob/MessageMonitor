@@ -8,8 +8,7 @@ using System.Text;
 
 namespace File_System_ES.V3
 {
-    [Serializable]
-    public class Node : ISerializable
+    public class Node 
     {
         public bool IsLeaf { get; set; }
 
@@ -103,21 +102,5 @@ namespace File_System_ES.V3
             return node;
         }
     
-
-        void ISerializable.GetObjectData(SerializationInfo info, StreamingContext ctx)
-        {
-            info.AddValue("isLeaf", this.IsLeaf);
-            info.AddValue("keys", this.Keys);
-            info.AddValue("pointers", this.Pointers);
-            info.AddValue("key_num", this.Key_Num);
-        }
-
-        protected Node(SerializationInfo info, StreamingContext ctx)
-        {
-            IsLeaf = info.GetBoolean("isLeaf");
-            Keys = (int[])info.GetValue("keys", typeof(int[]));
-            Pointers = (long[])info.GetValue("pointers", typeof(long[]));
-            Key_Num = info.GetInt32("key_num");
-        }
     }
 }
