@@ -111,10 +111,9 @@ namespace File_System_ES.V3
             }
             else
                 Write_Node(newNode);
+            Write_Node(node);
             if (node.Parent == null)
             {
-                //node.IsLeaf = false;
-                Write_Node(node);
 
                 Root = Node.Create_New(Size, false);
                 Root.Keys[0] = mid_Key;
