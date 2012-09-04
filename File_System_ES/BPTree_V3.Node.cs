@@ -11,9 +11,8 @@ namespace File_System_ES.V3
     [Serializable]
     public class Node : ISerializable
     {
-        //public long First_Child { get; set; }
         public bool IsLeaf { get; set; }
-       // public File_Address[] Children { get; set; }
+
         public int[] Keys { get; set; }
         public long[] Pointers { get; set; }
         public int Key_Num { get; set; }
@@ -25,59 +24,9 @@ namespace File_System_ES.V3
         protected Node(int size, bool isLeaf) 
         {
             IsLeaf = isLeaf;
-           //Children = new File_Address[size];
-            Pointers = new long[size +1];
+            Pointers = new long[size + 1];
             Keys = new int[size];
-
-            for (int i = 0; i < size; i++)
-                Keys[i] = int.MinValue;
-
-            for (int i = 0; i < size +1; i++)
-                Pointers[i] = int.MinValue;
         }
-
-
-        public Node(bool isLeaf, int[] keys, long[] pointers, int key_num)
-        {
-            IsLeaf = isLeaf;
-            Keys = keys;
-            Pointers = pointers;
-            Key_Num = key_num;
-        }
-        protected Node(SerializationInfo info, StreamingContext ctx) 
-        {
-            IsLeaf= info.GetBoolean("isLeaf");
-            Keys = (int[])info.GetValue("keys", typeof(int[]));
-            Pointers = (long[])info.GetValue("pointers", typeof(long[]));
-            Key_Num = info.GetInt32("key_num");
-        }
-
-        //public long Get_Child_Node_Address(int key)
-        //{
-        //    if (IsLeaf)
-        //        throw new InvalidOperationException("Leafs do not have children");
-
-        //    if (!Children[0].IsValid)
-        //        return First_Child;
-
-
-        //    if(key > Children.Where(v=> v.IsValid).Last().Key)
-        //        return Children.Where(v => v.IsValid).Last().Address;
-
-        //    for (int i = Children.Length-1; i >= 0; i--)
-        //    {
-        //        var child = Children[i];
-        //        if ( child.IsValid && key >= child.Key)
-        //            return child.Address;
-        //    }
-
-        //    return First_Child;
-        //}
-
-
-
-
-
 
 
 
@@ -112,6 +61,49 @@ namespace File_System_ES.V3
             return new Node(size, isLeaf);
         }
 
+
+        public byte[] To_Bytes()
+        {
+            var size = Size_In_Bytes(Keys.Length);
+
+            var buffer = new byte[size];
+
+            Array.Copy(BitConverter.GetBytes(Key_Num), 0, buffer, 0, 4);
+            Array.Copy(BitConverter.GetBytes(IsLeaf), 0, buffer, 4, 1);
+
+
+            for (int i = 0; i < Key_Num; i++)
+                Array.Copy(BitConverter.GetBytes(Keys[i]), 0, buffer,  5 + 4 * i, 4);
+
+            for (int i = 0; i < Key_Num +1; i++)
+                Array.Copy(BitConverter.GetBytes(Pointers[i]), 0, buffer,  5 + 4 * Keys.Length + i * 8, 8);
+
+            return buffer;
+        }
+
+        public static int Size_In_Bytes(int size)
+        {
+            return 4 + 1 + 4 * size + 8 * (size + 1);
+        }
+
+        public static Node From_Bytes(byte[] buffer, int size)
+        {
+            var byteCount = Size_In_Bytes(size);
+
+            var node = Node.Create_New(size, BitConverter.ToBoolean(buffer, 4));
+            node.Key_Num = BitConverter.ToInt32(buffer, 0);
+
+            for (int i = 0; i < node.Key_Num; i++)
+                node.Keys[i] = BitConverter.ToInt32(buffer, 5 + 4 * i);
+
+
+            for (int i = 0; i < node.Key_Num + 1; i++)
+                node.Pointers[i] = BitConverter.ToInt64(buffer, 5 + 4 * size + 8 * i);
+
+            return node;
+        }
+    
+
         void ISerializable.GetObjectData(SerializationInfo info, StreamingContext ctx)
         {
             info.AddValue("isLeaf", this.IsLeaf);
@@ -119,39 +111,13 @@ namespace File_System_ES.V3
             info.AddValue("pointers", this.Pointers);
             info.AddValue("key_num", this.Key_Num);
         }
-    }
 
-
-    [Serializable]
-    public struct File_Address : IComparable<File_Address>
-    {
-        public bool IsValid { get; set; }
-
-        public int Key { get; set; }
-        public long Address { get; set; }
-
-        public override string ToString()
+        protected Node(SerializationInfo info, StreamingContext ctx)
         {
-            if (!IsValid)
-                return "-";
-            else
-                return string.Format("Key {0}, Address : {1}", Key, Address);
-        }
-
-        public int CompareTo(File_Address other)
-        {
-            return Comparer<int>.Default.Compare(Key, other.Key);
+            IsLeaf = info.GetBoolean("isLeaf");
+            Keys = (int[])info.GetValue("keys", typeof(int[]));
+            Pointers = (long[])info.GetValue("pointers", typeof(long[]));
+            Key_Num = info.GetInt32("key_num");
         }
     }
-
-
-    public class Split_Result
-    {
-        public Node First { get; set; }
-        public Node Second { get; set; }
-
-        public Node Parent { get; set; }
-        public int Key { get; set; }
-    }
-
 }

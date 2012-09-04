@@ -8,3 +8,5 @@ TestResults
 packages/
 *.mdf
 *.ldf
+*.vspx
+*.psess

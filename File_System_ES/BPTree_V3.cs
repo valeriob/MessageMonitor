@@ -9,13 +9,16 @@ namespace File_System_ES.V3
 {
     // https://github.com/gugugupan/B-plus-tree/blob/master/bpt.cpp
 
-    public partial class BPlusTree<T>
+    public partial class BPlusTree<T> where T : class
     {
         public Node Root { get; set; }
         public Node UncommittedRoot { get; set; }
 
         public Stream Stream { get; set; }
         public int Size { get; set; }
+
+        public Dictionary<long, int> _readMemory_Count = new Dictionary<long, int>();
+        public Dictionary<long, int> _writeMemory_Count = new Dictionary<long, int>();
 
         public BPlusTree(Stream stream)
         {
@@ -32,17 +35,9 @@ namespace File_System_ES.V3
 
         private void Init()
         {
-            Node root = null;
-            try 
-            {
-                root = Read_Node(null, 0);
-            }
-            catch (Exception) 
-            {
-                root = Node.Create_New(Size, true);
-                Write_Node(root, 0);
-                Root = root;
-            }
+            var root = Node.Create_New(Size, true);
+            Write_Node(root);
+            Root = root;
         }
 
    
@@ -50,7 +45,7 @@ namespace File_System_ES.V3
         public T Get(int key)
         {
             var leaf = Find_Leaf_Node(key);
-            var data = Read_Data(leaf.Get_Data_Address(key));
+            var data = Read_Data<T>(leaf.Get_Data_Address(key));
             return data;
         }
 
@@ -64,14 +59,12 @@ namespace File_System_ES.V3
             for(int i=0; i< leaf.Key_Num; i++)
                 if (key == leaf.Keys[i])
                 {
-                    //leaf.Pointers[i] = data_Address;
-                    //Update_Node(leaf);
+                    leaf.Pointers[i] = data_Address;
+                    Update_Node(leaf);
                     return;
                 }
 
             Insert_in_node(leaf, key, data_Address);
-
-            //Update_Node(leaf);
         }
 
         protected void Insert_in_node(Node node, int key, long address)

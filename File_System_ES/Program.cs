@@ -13,84 +13,36 @@ namespace File_System_ES
         static void Main(string[] args)
         {
             Stream stream = new MemoryStream();
-            //stream = File.Open("index.dat", FileMode.Truncate);
+            //var stream = new FileStream("index.dat", FileMode.Truncate);
+
             string result;
             var tree = new V3.BPlusTree<string>(stream);
             var rnd = new Random(DateTime.Now.Millisecond);
-            int n = 100000;
+            int number_Of_Inserts = 10000;
             var watch = new Stopwatch();
             watch.Start();
 
-            for (int i = 0; i < n; i++)
+            for (int i = 0; i < number_Of_Inserts; i++)
             {
                 tree.Put(i, "text about " + i);
             }
 
-            for (int i = 0; i < n; i++)
-            {
-                result = tree.Get(i);
-                Debug.Assert(result == "text about " + i);
-            }
+            //for (int i = 0; i < number_Of_Inserts; i++)
+            //{
+            //    result = tree.Get(i);
+            //}
 
             watch.Stop();
             Console.WriteLine(watch.Elapsed);
+            Console.WriteLine("Total reads : "+ tree._readMemory_Count.Sum(s => s.Value));
+            Console.WriteLine("Total writes : " + tree._writeMemory_Count.Sum(s => s.Value));
+
             Console.ReadLine();
-
-            return;
-
-            tree.Put(0, "ciao 0");
-            result = tree.Get(0);
-
-            tree.Put(2, "ciao 2");
-            result = tree.Get(2);
-
-            tree.Put(3, "ciao 3");
-            result = tree.Get(3);
-
-            //tree.Put(4, "ciao 4");
-            //result = tree.Get(4);
-
-            tree.Put(1, "ciao 1");
-            result = tree.Get(1);
         }
-
-        //static void Main(string[] args)
-        //{
-        //    string result;
-
-        //    var stream = new MemoryStream();
-        //    var tree = new BPlusTree<string>(stream);
-
-
-        //    tree.Put(0, "ciao 0");
-        //    result = tree.Get(0);
-
-        //    //tree.Put(1, "ciao 1");
-        //    //result = tree.Get(1);
-
-        //    tree.Put(2, "ciao 2");
-        //    result = tree.Get(2);
-
-        //    tree.Put(3, "ciao 3");
-        //    result = tree.Get(3);
-
-        //    tree.Put(1, "ciao 1");
-        //    result = tree.Get(1);
-
-        //    tree.Put(4, "ciao 4");
-        //    result = tree.Get(4);
-
-        //    tree.Put(5, "ciao 5");
-        //    result = tree.Get(5);
-
-
-        //    tree.Put(6, "ciao 6");
-        //    result = tree.Get(6);
-        //}
 
 
         static FileStream file;
-        static void Main_old(string[] args)
+        static void Main_No(string[] args)
         {
             string fileName ="stream.dat";
 
@@ -99,22 +51,25 @@ namespace File_System_ES
 
             file = File.Open("index.dat", FileMode.OpenOrCreate);
 
-            var opts = new CSharpTest.Net.Collections.BPlusTree<int, int>.OptionsV2(PrimitiveSerializer.Int32, PrimitiveSerializer.Int32) 
+            var opts = new CSharpTest.Net.Collections.BPlusTree<int, string>.OptionsV2(PrimitiveSerializer.Int32, PrimitiveSerializer.String) 
             { 
                 BTreeOrder = 4, 
                 FileName = "file", 
                 CreateFile= CSharpTest.Net.Collections.CreatePolicy.IfNeeded,
                 StorageType = CSharpTest.Net.Collections.StorageType.Disk,
             };
-            var index = new CSharpTest.Net.Collections.BPlusTree<int, int>(opts);
+            var index = new CSharpTest.Net.Collections.BPlusTree<int, string>(opts);
 
-            var id = Guid.Empty;
-            index[0] = 0;
-            index[2] = 2;
-            index[3] = 3;
-            index[1] = 1;
+            var watch = new Stopwatch();
+            watch.Start();
+            for (int i = 0; i < 10000; i++)
+            {
+                index.Add(i, "text about " + i);
+            }
             index.Commit();
-            
+            watch.Stop();
+            Console.WriteLine(watch.Elapsed);
+            Console.ReadLine();
         }
 
     }
@@ -181,5 +136,17 @@ namespace File_System_ES
     {
         public long Address { get; set; }
         public int Offset { get; set; }
+    }
+
+    public class MyFs : FileStream
+    {
+        public MyFs(string path, FileMode mode)
+            : base(path, mode)
+        { }
+
+        public override void Flush()
+        {
+            base.Flush(true);
+        }
     }
 }
