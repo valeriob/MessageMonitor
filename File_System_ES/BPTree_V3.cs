@@ -82,17 +82,17 @@ namespace File_System_ES.V3
 
         private void Init()
         {
-            try
-            {
-                var buffer = new byte[8];
-                Index_Stream.Seek(0, SeekOrigin.Begin);
-                Index_Stream.Read(buffer, 0, 8);
-                long rootIndex = BitConverter.ToInt64(buffer, 0);
+            //try
+            //{
+            //    var buffer = new byte[8];
+            //    Index_Stream.Seek(0, SeekOrigin.Begin);
+            //    Index_Stream.Read(buffer, 0, 8);
+            //    long rootIndex = BitConverter.ToInt64(buffer, 0);
 
-                Root = Read_Node(null, rootIndex);
-                return;
-            }
-            catch (Exception) { }
+            //    Root = Read_Node(null, rootIndex);
+            //    return;
+            //}
+            //catch (Exception) { }
 
             var root = Node.Create_New(Size, true);
             Write_Node(root);

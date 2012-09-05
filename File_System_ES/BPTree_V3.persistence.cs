@@ -60,7 +60,7 @@ namespace File_System_ES.V3
 
             var bytes = node.To_Bytes();
             Index_Stream.Write(bytes, 0, bytes.Length);
-            Index_Stream.Flush();
+      //      Index_Stream.Flush();
 
 
             if (_writeMemory_Count.ContainsKey(address))
