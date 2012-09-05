@@ -24,10 +24,15 @@ namespace File_System_ES.V3
         {
             return _data_Pointer;
         }
+        private long _committed_Index_Pointer;
 
-        BinaryFormatter serializer = new BinaryFormatter();
 
- 
+        protected void Free_Address(long address)
+        {
+            Freed_Empty_Slots.Add(address);
+        }
+
+
 
         protected void Write_Node(Node node)
         {
@@ -43,17 +48,6 @@ namespace File_System_ES.V3
                 Write_Node(node, address);
                 _index_Pointer += Node.Size_In_Bytes(Size);
             }
-        }
-
-        [Obsolete("Just append new node")]
-        protected void Update_Node(Node node)
-        {
-            Write_Node(node, node.Address);
-        }
-
-        protected void Delete_Node(Node node)
-        { 
-            
         }
 
 
@@ -73,6 +67,25 @@ namespace File_System_ES.V3
                 _writeMemory_Count[address] += 1;
             else
                 _writeMemory_Count[address] = 1;
+        }
+
+        protected Node Read_Node(Node parent, long address)
+        {
+            Index_Stream.Seek(address, SeekOrigin.Begin);
+
+            var buffer = new byte[Node.Size_In_Bytes(Size)];
+
+            Index_Stream.Read(buffer, 0, buffer.Length);
+
+            if (_readMemory_Count.ContainsKey(address))
+                _readMemory_Count[address] += 1;
+            else
+                _readMemory_Count[address] = 1;
+
+            var node = Node.From_Bytes(buffer, Size);
+            node.Parent = parent;
+            node.Address = address;
+            return node;
         }
 
 
@@ -95,32 +108,16 @@ namespace File_System_ES.V3
             _data_Pointer += bytes.Length;
         }
 
-        protected Node Read_Node(Node parent, long address)
-        {
-            Index_Stream.Seek(address, SeekOrigin.Begin);
-
-            var buffer = new byte[Node.Size_In_Bytes(Size)];
-
-            Index_Stream.Read(buffer, 0, buffer.Length);
-
-            if (_readMemory_Count.ContainsKey(address))
-                _readMemory_Count[address] += 1;
-            else
-                _readMemory_Count[address] = 1;
-
-            var node = Node.From_Bytes(buffer, Size);
-            node.Parent = parent;
-            node.Address = address;
-            return node;
-        }
-
-        protected byte[] Read_Data(long address) 
+        protected byte[] Read_Data(long address)
         {
             Data_Stream.Seek(address, SeekOrigin.Begin);
 
             var data = Data.From_Bytes(Data_Stream);
             return data.Payload;
         }
+
+
+
 
 
     }

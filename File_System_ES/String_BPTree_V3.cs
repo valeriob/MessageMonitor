@@ -22,6 +22,11 @@ namespace File_System_ES.V3
             BPlusTree.Commit();
         }
 
+        public void RollBack()
+        {
+            BPlusTree.Rollback();
+        }
+
 
    
 

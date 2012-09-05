@@ -66,6 +66,18 @@ namespace File_System_ES.V3
         }
 
 
+        public Node Clone()
+        {
+            var node = Create_New(Keys.Length, IsLeaf);
+            node.Key_Num = Key_Num;
+            node.Keys = Keys;
+            node.Pointers = Pointers;
+            node.Versions = Versions;
+            node.Parent = Parent;
+            node.Address = Address;
+            return node;
+        }
+
         public byte[] To_Bytes()
         {
             var size = Size_In_Bytes(Keys.Length);

@@ -22,19 +22,21 @@ namespace File_System_ES
             string result;
             var tree = new V3.StringBPlusTree(infoStream, indexStream, dataStream);
             var rnd = new Random(DateTime.Now.Millisecond);
-            int number_Of_Inserts = 100000;
+            int number_Of_Inserts = 10000;
             var watch = new Stopwatch();
             watch.Start();
 
             for (int i = 0; i < number_Of_Inserts; i++)
             {
                 tree.Put(i, "text about " + i);
-            }
 
-            //for (int i = 0; i < number_Of_Inserts; i++)
-            //{
-            //    result = tree.Get(i);
-            //}
+            }
+            tree.RollBack();
+
+            for (int i = 0; i < number_Of_Inserts; i++)
+            {
+                result = tree.Get(i);
+            }
 
             watch.Stop();
             Console.WriteLine(watch.Elapsed);
