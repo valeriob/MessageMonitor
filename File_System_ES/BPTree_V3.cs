@@ -14,16 +14,18 @@ namespace File_System_ES.V3
         public Node Root { get; set; }
         public Node UncommittedRoot { get; set; }
 
-        public Stream Stream { get; set; }
+        public Stream Index_Stream { get; set; }
+        public Stream Data_Stream { get; set; }
         public int Size { get; set; }
 
         public Dictionary<long, int> _readMemory_Count = new Dictionary<long, int>();
         public Dictionary<long, int> _writeMemory_Count = new Dictionary<long, int>();
 
-        public BPlusTree(Stream stream)
+        public BPlusTree(Stream indexStream, Stream dataStream)
         {
             Size = 11;
-            Stream = stream;
+            Index_Stream = indexStream;
+            Data_Stream = dataStream;
             Init();
         }
 
@@ -53,8 +55,8 @@ namespace File_System_ES.V3
         {
             var leaf = Find_Leaf_Node(key);
 
-            var data_Address = Current_Pointer();
-            Write_Object(value, data_Address);
+            var data_Address = Data_Pointer();
+            Write_Data(value, data_Address);
 
             for(int i=0; i< leaf.Key_Num; i++)
                 if (key == leaf.Keys[i])

@@ -12,11 +12,13 @@ namespace File_System_ES
     {
         static void Main(string[] args)
         {
-            Stream stream = new MemoryStream();
-            //var stream = new FileStream("index.dat", FileMode.Truncate);
+            //Stream indexStream = new MemoryStream();
+            //Stream dataStream = new MemoryStream();
+            var indexStream = new FileStream("index.dat", FileMode.OpenOrCreate);
+            var dataStream = new FileStream("data.dat", FileMode.OpenOrCreate);
 
             string result;
-            var tree = new V3.BPlusTree<string>(stream);
+            var tree = new V3.BPlusTree<string>(indexStream, dataStream);
             var rnd = new Random(DateTime.Now.Millisecond);
             int number_Of_Inserts = 10000;
             var watch = new Stopwatch();
@@ -67,6 +69,42 @@ namespace File_System_ES
                 index.Add(i, "text about " + i);
             }
             index.Commit();
+            watch.Stop();
+            Console.WriteLine(watch.Elapsed);
+            Console.ReadLine();
+        }
+
+        static void Main_2(string[] args)
+        {
+            var con = new System.Data.SqlClient.SqlConnection(@"Data Source=(localdb)\Projects;Initial Catalog=Test;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False");
+            con.Open();
+            var watch = new Stopwatch();
+            watch.Start();
+
+
+            for (int i = 0; i < 10000; i++)
+            {
+                var trans = con.BeginTransaction();
+                using (var cmd = con.CreateCommand()) 
+                {
+                    cmd.Transaction = trans;
+                    cmd.CommandText = @"INSERT INTO dbo.TABLE_Insert VALUES(@id, @value)";
+                    var par = cmd.CreateParameter();
+                    par.Value = i;
+                    par.ParameterName = "id";
+                    cmd.Parameters.Add(par);
+
+                    par = cmd.CreateParameter();
+                    par.Value = "value " + i;
+                    par.ParameterName = "value";
+                    cmd.Parameters.Add(par);
+
+                    cmd.ExecuteNonQuery();
+                }
+                trans.Rollback();
+            }
+
+
             watch.Stop();
             Console.WriteLine(watch.Elapsed);
             Console.ReadLine();

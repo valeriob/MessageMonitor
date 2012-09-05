@@ -9,23 +9,27 @@ namespace File_System_ES.V3
 {
     public partial class BPlusTree<T>
     {
-    
-   
-
-        private long _currentPointer;
-        private long Current_Pointer()
+        private long _index_Pointer;
+        private long Index_Pointer()
         {
-            return _currentPointer;
+            return _index_Pointer;
         }
+
+        private long _data_Pointer;
+        private long Data_Pointer()
+        {
+            return _data_Pointer;
+        }
+
         BinaryFormatter serializer = new BinaryFormatter();
 
  
 
         protected void Write_Node(Node node)
         {
-            var address = Current_Pointer();
+            var address = Index_Pointer();
             Write_Node(node, address);
-            _currentPointer += Node.Size_In_Bytes(Size);
+            _index_Pointer += Node.Size_In_Bytes(Size);
         }
         protected void Update_Node(Node node)
         {
@@ -35,11 +39,11 @@ namespace File_System_ES.V3
 
         protected void Write_Node(Node node, long address)
         {
-            Stream.Seek(address, SeekOrigin.Begin);
+            Index_Stream.Seek(address, SeekOrigin.Begin);
 
              var bytes = node.To_Bytes();
-             Stream.Write(bytes, 0, bytes.Length);
-             Stream.Flush();
+             Index_Stream.Write(bytes, 0, bytes.Length);
+             Index_Stream.Flush();
 
              if (_writeMemory_Count.ContainsKey(address))
                  _writeMemory_Count[address] += 1;
@@ -50,28 +54,27 @@ namespace File_System_ES.V3
         }
 
 
-        protected void Write_Object<V>(V value, long address)
+        protected void Write_Data<V>(V value, long address)
         {
-            Stream.Seek(address, SeekOrigin.Begin);
+            Data_Stream.Seek(address, SeekOrigin.Begin);
 
             if (typeof(V) != typeof(string))
                 throw new NotSupportedException("");
 
             var bytes = Encoding.UTF8.GetBytes(value as string);
-            Stream.Write(BitConverter.GetBytes(bytes.Length), 0, 4);
-            Stream.Write(bytes, 0, bytes.Length);
-            Stream.Flush();
+            Data_Stream.Write(BitConverter.GetBytes(bytes.Length), 0, 4);
+            Data_Stream.Write(bytes, 0, bytes.Length);
 
-            _currentPointer += bytes.Length + 4;
+            _data_Pointer += bytes.Length + 4;
         }
 
         protected Node Read_Node(Node parent, long address)
         {
-            Stream.Seek(address, SeekOrigin.Begin);
+            Index_Stream.Seek(address, SeekOrigin.Begin);
 
             var buffer = new byte[Node.Size_In_Bytes(Size)];
 
-            Stream.Read(buffer, 0, buffer.Length);
+            Index_Stream.Read(buffer, 0, buffer.Length);
 
             if (_readMemory_Count.ContainsKey(address))
                 _readMemory_Count[address] += 1;
@@ -86,17 +89,17 @@ namespace File_System_ES.V3
 
         protected V Read_Data<V>(long address) where V: class
         {
-            Stream.Seek(address, SeekOrigin.Begin);
+            Data_Stream.Seek(address, SeekOrigin.Begin);
 
             if (typeof(V) != typeof(string))
                 throw new NotSupportedException("");
 
             var buffer = new byte[4];
-            Stream.Read(buffer, 0, 4);
+            Data_Stream.Read(buffer, 0, 4);
 
             int lenght = BitConverter.ToInt32(buffer, 0);
             buffer = new byte[lenght];
-            Stream.Read(buffer, 0, lenght);
+            Data_Stream.Read(buffer, 0, lenght);
 
             object obj = Encoding.UTF8.GetString(buffer);
             return obj as V;
