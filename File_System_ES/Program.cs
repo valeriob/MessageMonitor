@@ -14,13 +14,13 @@ namespace File_System_ES
         {
             //Stream indexStream = new MemoryStream();
             //Stream dataStream = new MemoryStream();
-            var indexStream = new FileStream("index.dat", FileMode.OpenOrCreate);
-            var dataStream = new FileStream("data.dat", FileMode.OpenOrCreate);
+            var indexStream = new FileStream("index.dat", FileMode.Truncate);
+            var dataStream = new FileStream("data.dat", FileMode.Truncate);
 
             string result;
             var tree = new V3.BPlusTree<string>(indexStream, dataStream);
             var rnd = new Random(DateTime.Now.Millisecond);
-            int number_Of_Inserts = 10000;
+            int number_Of_Inserts = 1000000;
             var watch = new Stopwatch();
             watch.Start();
 

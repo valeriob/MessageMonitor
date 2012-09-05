@@ -103,4 +103,59 @@ namespace File_System_ES.V3
         }
     
     }
+
+    public class Data
+    {
+        public int Key { get; set; }
+        public DateTime Timestamp { get; set; }
+        public int Version { get; set; }
+        public string Payload { get; set; }
+
+
+        public byte[] To_Bytes()
+        {
+            var payload_In_Bytes = Encoding.UTF8.GetBytes(Payload);
+
+            var size = 4 + 8 + 4 + payload_In_Bytes.Length;
+
+            var buffer = new byte[size];
+
+            Array.Copy(BitConverter.GetBytes(size), 0, buffer, 0, 4);
+
+            Array.Copy(BitConverter.GetBytes(Key), 0, buffer, 4, 4);
+            Array.Copy(BitConverter.GetBytes(Timestamp.Ticks), 0, buffer, 8, 8);
+
+            Array.Copy(BitConverter.GetBytes(Version), 0, buffer, 16, 4);
+
+            Array.Copy(payload_In_Bytes, 0, buffer, 20, payload_In_Bytes.Length);
+
+            return buffer;
+        }
+
+        public static Data From_Bytes(Stream stream)
+        {
+            var buffer = new byte[4];
+            stream.Read(buffer, 0, 4);
+
+            int lenght = BitConverter.ToInt32(buffer, 0);
+            buffer = new byte[lenght];
+            stream.Read(buffer, 0, lenght);
+
+            return From_Bytes(buffer, lenght);
+        }
+
+        public static Data From_Bytes(byte[] buffer, int totalLenght)
+        {
+            var data = new Data
+            {
+                Key = BitConverter.ToInt32(buffer, 0),
+                Timestamp = DateTime.FromBinary(BitConverter.ToInt64(buffer, 4)),
+                Version = BitConverter.ToInt32(buffer, 12),
+                Payload = Encoding.UTF8.GetString(buffer, 16, totalLenght - 16),
+            };
+            return data;
+        }
+
+
+    }
 }
