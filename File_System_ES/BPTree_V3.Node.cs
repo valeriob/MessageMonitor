@@ -31,6 +31,9 @@ namespace File_System_ES.V3
 
 
 
+
+
+
         public long Get_Data_Address(int key)
         {
             for (int i = 0; i < Keys.Length; i++)
@@ -111,14 +114,12 @@ namespace File_System_ES.V3
         public int Key { get; set; }
         public DateTime Timestamp { get; set; }
         public int Version { get; set; }
-        public string Payload { get; set; }
+        public byte[] Payload { get; set; }
 
 
         public byte[] To_Bytes()
         {
-            var payload_In_Bytes = Encoding.UTF8.GetBytes(Payload);
-
-            var size = 4 + 8 + 4 + payload_In_Bytes.Length;
+            var size = 4 + 8 + 4 +4+ Payload.Length;
 
             var buffer = new byte[size];
 
@@ -129,7 +130,7 @@ namespace File_System_ES.V3
 
             Array.Copy(BitConverter.GetBytes(Version), 0, buffer, 16, 4);
 
-            Array.Copy(payload_In_Bytes, 0, buffer, 20, payload_In_Bytes.Length);
+            Array.Copy(Payload, 0, buffer, 20, Payload.Length);
 
             return buffer;
         }
@@ -153,8 +154,11 @@ namespace File_System_ES.V3
                 Key = BitConverter.ToInt32(buffer, 0),
                 Timestamp = DateTime.FromBinary(BitConverter.ToInt64(buffer, 4)),
                 Version = BitConverter.ToInt32(buffer, 12),
-                Payload = Encoding.UTF8.GetString(buffer, 16, totalLenght - 16),
+                Payload = new byte[totalLenght - 20]
             };
+
+            Array.Copy(buffer, 16, data.Payload, 0, totalLenght - 20);
+
             return data;
         }
 

@@ -7,9 +7,9 @@ using System.Text;
 
 namespace File_System_ES.V3
 {
-    public partial class BPlusTree<T>
+    public partial class BPlusTree
     {
-        public Queue<long> EmptySlots { get; set; }
+        public Queue<long> Empty_Slots { get; set; }
         public List<long> Reserved_Empty_Slots { get; set; }
         public List<long> Freed_Empty_Slots { get; set; }
 
@@ -31,9 +31,9 @@ namespace File_System_ES.V3
 
         protected void Write_Node(Node node)
         {
-            if (EmptySlots.Any())
+            if (Empty_Slots.Any())
             {
-                var address = EmptySlots.Dequeue();
+                var address = Empty_Slots.Dequeue();
                 Reserved_Empty_Slots.Add(address);
                 Write_Node(node, address);
             }
@@ -76,7 +76,7 @@ namespace File_System_ES.V3
         }
 
 
-        protected void Write_Data(string value, int key, int version)
+        protected void Write_Data(byte[] value, int key, int version)
         {
             var data = new Data 
             { 
@@ -114,7 +114,7 @@ namespace File_System_ES.V3
             return node;
         }
 
-        protected string Read_Data(long address) 
+        protected byte[] Read_Data(long address) 
         {
             Data_Stream.Seek(address, SeekOrigin.Begin);
 

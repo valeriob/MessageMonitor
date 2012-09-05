@@ -7,9 +7,7 @@ using System.Text;
 
 namespace File_System_ES.V3
 {
-    // https://github.com/gugugupan/B-plus-tree/blob/master/bpt.cpp
-
-    public partial class BPlusTree<T> where T : class
+    public partial class BPlusTree
     {
         public Node Root { get; set; }
         public Node UncommittedRoot { get; set; }
@@ -30,21 +28,29 @@ namespace File_System_ES.V3
             Info_Stream = infoStream;
             Index_Stream = indexStream;
             Data_Stream = dataStream;
-            Init();
 
-            EmptySlots = new Queue<long>();
+            Empty_Slots = new Queue<long>();
             Reserved_Empty_Slots = new List<long>();
             Freed_Empty_Slots = new List<long>();
 
             _index_Pointer = Math.Max(8, indexStream.Length);
             _data_Pointer = Data_Stream.Length;
+
+            Init();
         }
 
 
         public void Commit()
         {
+            // TODO Write oneshot
             Index_Stream.Seek(0, SeekOrigin.Begin);
             Index_Stream.Write(BitConverter.GetBytes(UncommittedRoot.Address), 0, 8);
+
+            Index_Stream.Flush();
+
+            // add free page to
+            foreach (var address in Freed_Empty_Slots)
+                Empty_Slots.Enqueue(address);
         }
 
         private void Init()
@@ -56,14 +62,14 @@ namespace File_System_ES.V3
 
    
 
-        public string Get(int key)
+        public byte[] Get(int key)
         {
             var leaf = Find_Leaf_Node(key);
             var data = Read_Data(leaf.Get_Data_Address(key));
             return data;
         }
 
-        public void Put(int key, string value)
+        public void Put(int key, byte[] value)
         {
             var leaf = Find_Leaf_Node(key);
 

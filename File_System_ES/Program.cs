@@ -15,14 +15,14 @@ namespace File_System_ES
             //Stream infoStream = new MemoryStream();
             //Stream indexStream = new MemoryStream();
             //Stream dataStream = new MemoryStream();
-            var infoStream = new FileStream("info.dat", FileMode.Truncate);
-            var indexStream = new FileStream("index.dat", FileMode.Truncate);
-            var dataStream = new FileStream("data.dat", FileMode.Truncate);
+            var infoStream = new FileStream("info.dat", FileMode.OpenOrCreate);
+            var indexStream = new FileStream("index.dat", FileMode.OpenOrCreate);
+            var dataStream = new FileStream("data.dat", FileMode.OpenOrCreate);
 
             string result;
-            var tree = new V3.BPlusTree<string>(infoStream, indexStream, dataStream);
+            var tree = new V3.StringBPlusTree(infoStream, indexStream, dataStream);
             var rnd = new Random(DateTime.Now.Millisecond);
-            int number_Of_Inserts = 1000000;
+            int number_Of_Inserts = 100000;
             var watch = new Stopwatch();
             watch.Start();
 
@@ -38,8 +38,8 @@ namespace File_System_ES
 
             watch.Stop();
             Console.WriteLine(watch.Elapsed);
-            Console.WriteLine("Total reads : "+ tree._readMemory_Count.Sum(s => s.Value));
-            Console.WriteLine("Total writes : " + tree._writeMemory_Count.Sum(s => s.Value));
+            Console.WriteLine("Total reads : " + tree.BPlusTree._readMemory_Count.Sum(s => s.Value));
+            Console.WriteLine("Total writes : " + tree.BPlusTree._writeMemory_Count.Sum(s => s.Value));
 
             Console.ReadLine();
         }
