@@ -14,25 +14,37 @@ namespace File_System_ES.V3
         public Node Root { get; set; }
         public Node UncommittedRoot { get; set; }
 
-        public Stream Index_Stream { get; set; }
-        public Stream Data_Stream { get; set; }
-        public int Size { get; set; }
+        protected Stream Info_Stream { get; set; }
+        protected Stream Index_Stream { get; set; }
+        protected Stream Data_Stream { get; set; }
+        
+        protected int Size { get; set; }
 
         public Dictionary<long, int> _readMemory_Count = new Dictionary<long, int>();
         public Dictionary<long, int> _writeMemory_Count = new Dictionary<long, int>();
 
-        public BPlusTree(Stream indexStream, Stream dataStream)
+
+        public BPlusTree(Stream infoStream, Stream indexStream, Stream dataStream)
         {
             Size = 11;
+            Info_Stream = infoStream;
             Index_Stream = indexStream;
             Data_Stream = dataStream;
             Init();
+
+            EmptySlots = new Queue<long>();
+            Reserved_Empty_Slots = new List<long>();
+            Freed_Empty_Slots = new List<long>();
+
+            _index_Pointer = Math.Max(8, indexStream.Length);
+            _data_Pointer = Data_Stream.Length;
         }
 
 
         public void Commit()
         {
-            Update_Node(UncommittedRoot);
+            Index_Stream.Seek(0, SeekOrigin.Begin);
+            Index_Stream.Write(BitConverter.GetBytes(UncommittedRoot.Address), 0, 8);
         }
 
         private void Init()
@@ -44,19 +56,19 @@ namespace File_System_ES.V3
 
    
 
-        public T Get(int key)
+        public string Get(int key)
         {
             var leaf = Find_Leaf_Node(key);
-            var data = Read_Data<T>(leaf.Get_Data_Address(key));
+            var data = Read_Data(leaf.Get_Data_Address(key));
             return data;
         }
 
-        public void Put(int key, T value)
+        public void Put(int key, string value)
         {
             var leaf = Find_Leaf_Node(key);
 
             var data_Address = Data_Pointer();
-            Write_Data(value, data_Address);
+            Write_Data(value, key, 0); // todo versionFromLeaf +1;
 
             for(int i=0; i< leaf.Key_Num; i++)
                 if (key == leaf.Keys[i])

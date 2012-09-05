@@ -15,6 +15,7 @@ namespace File_System_ES.V3
         public int[] Keys { get; set; }
         public long[] Pointers { get; set; }
         public int Key_Num { get; set; }
+        public int[] Versions { get; set; }
 
         public Node Parent { get; set; }
         public long Address { get; set; }
@@ -25,6 +26,7 @@ namespace File_System_ES.V3
             IsLeaf = isLeaf;
             Pointers = new long[size + 1];
             Keys = new int[size];
+            Versions = new int[size];
         }
 
 
