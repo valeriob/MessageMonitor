@@ -16,26 +16,27 @@ namespace File_System_ES
             //Stream indexStream = new MemoryStream();
             //Stream dataStream = new MemoryStream();
             var infoStream = new FileStream("info.dat", FileMode.OpenOrCreate);
-            var indexStream = new FileStream("index.dat", FileMode.OpenOrCreate);
+            var indexStream = new MyFileStream("index.dat", FileMode.OpenOrCreate);
             var dataStream = new FileStream("data.dat", FileMode.OpenOrCreate);
 
             string result;
             var tree = new V3.StringBPlusTree(infoStream, indexStream, dataStream);
             var rnd = new Random(DateTime.Now.Millisecond);
-            int number_Of_Inserts = 100000;
+            int number_Of_Inserts = 20000;
             var watch = new Stopwatch();
             watch.Start();
 
             for (int i = 0; i < number_Of_Inserts; i++)
             {
                 tree.Put(i, "text about " + i);
-                tree.Commit();
+                if(i % 100 == 0)
+                    tree.Commit();
             }
 
-            for (int i = 0; i < number_Of_Inserts; i++)
-            {
-                result = tree.Get(i);
-            }
+            //for (int i = 0; i < number_Of_Inserts; i++)
+            //{
+            //    result = tree.Get(i);
+            //}
 
             watch.Stop();
             Console.WriteLine(watch.Elapsed);
@@ -179,9 +180,9 @@ namespace File_System_ES
         public int Offset { get; set; }
     }
 
-    public class MyFs : FileStream
+    public class MyFileStream : FileStream
     {
-        public MyFs(string path, FileMode mode)
+        public MyFileStream(string path, FileMode mode)
             : base(path, mode)
         { }
 

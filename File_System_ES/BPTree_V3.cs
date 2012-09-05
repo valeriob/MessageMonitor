@@ -24,7 +24,7 @@ namespace File_System_ES.V3
 
         public BPlusTree(Stream infoStream, Stream indexStream, Stream dataStream)
         {
-            Size = 3;
+            Size = 11;
             Info_Stream = infoStream;
             Index_Stream = indexStream;
             Data_Stream = dataStream;

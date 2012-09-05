@@ -11,7 +11,9 @@ Dequeue => Write async in block (and clean reserved empty slot)
 
 
 
-
+	Performances : 
+		- Cache LRU for reading nodes
+		- batches writes at commit
 
 
 	Multitasking (multiple readers, one writer)
