@@ -12,6 +12,8 @@ namespace File_System_ES
         byte[] Get(int key);
         void Put(int key, byte[] value);
 
+        void Flush();
+        void Commit();
     }
     
  

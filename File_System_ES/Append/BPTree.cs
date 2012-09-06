@@ -21,9 +21,9 @@ namespace File_System_ES.Append
         public Dictionary<long, int> _writeMemory_Count = new Dictionary<long, int>();
         int current_Depth;
 
-        public BPlusTree(Stream indexStream, Stream dataStream)
+        public BPlusTree(Stream indexStream, Stream dataStream, int order)
         {
-            Size = 11;
+            Size = order;
             Index_Stream = indexStream;
             Data_Stream = dataStream;
 
@@ -65,7 +65,7 @@ namespace File_System_ES.Append
                 Root = UncommittedRoot;
                 UncommittedRoot = null;
 
-                //Index_Stream.Flush();
+               // Index_Stream.Flush();
 
                 // add free page to
                 foreach (var address in Freed_Empty_Slots)
@@ -299,7 +299,10 @@ namespace File_System_ES.Append
 
 
 
-
+        public void Flush()
+        {
+            Index_Stream.Flush();
+        }
 
     }
     

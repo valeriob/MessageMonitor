@@ -7,7 +7,7 @@ using System.Text;
 
 namespace File_System_ES
 {
-    public partial class String_BPlusTree
+    public partial class String_BPlusTree 
     {
         public IBPlusTree BPlusTree { get; set; }
 
@@ -27,6 +27,16 @@ namespace File_System_ES
         {
             var bytes = Encoding.UTF8.GetBytes(value);
             BPlusTree.Put(key, bytes);
+        }
+
+        public void Flush()
+        {
+            BPlusTree.Flush();
+        }
+
+        public void Commit()
+        {
+            BPlusTree.Commit();
         }
     }
     

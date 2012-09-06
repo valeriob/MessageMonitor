@@ -21,9 +21,9 @@ namespace File_System_ES.UpdateInPlace
         public Dictionary<long, int> _writeMemory_Count = new Dictionary<long, int>();
 
 
-        public BPlusTree(Stream indexStream, Stream dataStream)
+        public BPlusTree(Stream indexStream, Stream dataStream, int order)
         {
-            Size = 11;
+            Size = order;
             Index_Stream = indexStream;
             Data_Stream = dataStream;
 
@@ -122,6 +122,7 @@ namespace File_System_ES.UpdateInPlace
                 }
 
             UncommittedRoot = Insert_in_node(leaf, key, data_Address);
+            //Commit();
         }
         public bool Delete(int key)
         {
@@ -271,7 +272,13 @@ namespace File_System_ES.UpdateInPlace
         }
 
 
-      
+
+
+
+        public void Flush()
+        {
+            Index_Stream.Flush();
+        }
     }
     
 }

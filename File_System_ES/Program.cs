@@ -12,140 +12,17 @@ namespace File_System_ES
     {
         static void Main(string[] args)
         {
-            Stream indexStream = new MemoryStream();
-            Stream dataStream = new MemoryStream();
-            //var indexStream = new FileStream("index.dat", FileMode.Truncate);
-            //var dataStream = new FileStream("data.dat", FileMode.Truncate);
 
-            string result;
-            var appendBpTree = new Append.BPlusTree(indexStream, dataStream);
-            var tree = new String_BPlusTree(appendBpTree);
-  
-            var rnd = new Random(DateTime.Now.Millisecond);
-            int number_Of_Inserts = 10000;
-            var watch = new Stopwatch();
-            watch.Start();
-
-            for (int i = 0; i < number_Of_Inserts; i++)
+            var results = Benchmarks.Benchmark.RunAll(100000,1000);
+            foreach (var result in results)
             {
-                tree.Put(i, "text about " + i);
-                result = tree.Get(i);
-                if(i-1>=0)
-                    result = tree.Get(i-1);
+                Console.WriteLine(result.ToString());
             }
-
-            for (int i = number_Of_Inserts; i < 0; i--)
-            {
-                result = tree.Get(i);
-            }
-
-            watch.Stop();
-            Console.WriteLine(watch.Elapsed);
-
-            //Console.WriteLine("Total reads : " + tree.BPlusTree._readMemory_Count.Sum(s => s.Value));
-            //Console.WriteLine("Total writes : " + tree.BPlusTree._writeMemory_Count.Sum(s => s.Value));
-
-            //Console.WriteLine("Free Pages : " + tree.BPlusTree.Empty_Slots.Count());
 
             Console.ReadLine();
         }
 
 
-        static FileStream file;
-        static void Main_No(string[] args)
-        {
-            string fileName ="stream.dat";
-
-            if (File.Exists(fileName))
-                File.Delete(fileName);
-
-            file = File.Open("index.dat", FileMode.OpenOrCreate);
-
-            var opts = new CSharpTest.Net.Collections.BPlusTree<int, string>.OptionsV2(PrimitiveSerializer.Int32, PrimitiveSerializer.String) 
-            { 
-                BTreeOrder = 4, 
-                FileName = "file", 
-                CreateFile= CSharpTest.Net.Collections.CreatePolicy.IfNeeded,
-                StorageType = CSharpTest.Net.Collections.StorageType.Disk,
-            };
-            var index = new CSharpTest.Net.Collections.BPlusTree<int, string>(opts);
-
-            var watch = new Stopwatch();
-            watch.Start();
-            for (int i = 0; i < 10000; i++)
-            {
-                index.Add(i, "text about " + i);
-            }
-            index.Commit();
-            watch.Stop();
-            Console.WriteLine(watch.Elapsed);
-            Console.ReadLine();
-        }
-
-        static void Main_2(string[] args)
-        {
-            var con = new System.Data.SqlClient.SqlConnection(@"Data Source=(localdb)\Projects;Initial Catalog=Test;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False");
-            con.Open();
-            var watch = new Stopwatch();
-            watch.Start();
-
-
-            for (int i = 0; i < 10000; i++)
-            {
-                var trans = con.BeginTransaction();
-                using (var cmd = con.CreateCommand()) 
-                {
-                    cmd.Transaction = trans;
-                    cmd.CommandText = @"INSERT INTO dbo.TABLE_Insert VALUES(@id, @value)";
-                    var par = cmd.CreateParameter();
-                    par.Value = i;
-                    par.ParameterName = "id";
-                    cmd.Parameters.Add(par);
-
-                    par = cmd.CreateParameter();
-                    par.Value = "value " + i;
-                    par.ParameterName = "value";
-                    cmd.Parameters.Add(par);
-
-                    cmd.ExecuteNonQuery();
-                }
-                trans.Rollback();
-            }
-
-
-            watch.Stop();
-            Console.WriteLine(watch.Elapsed);
-            Console.ReadLine();
-        }
-
-    }
-
-    public class Head_Serializer : ISerializer<Stream_Head>
-    {
-        public Stream_Head ReadFrom(Stream stream)
-        {
-            int lenght = 0;
-            var head =new Stream_Head
-            {
-                Id = PrimitiveSerializer.Guid.ReadFrom(stream),
-                Version = PrimitiveSerializer.Int32.ReadFrom(stream),
-            };
-
-            lenght = PrimitiveSerializer.Int32.ReadFrom(stream);
-            head.Commits = new long[lenght];
-            for (int i = 0; i < lenght; i++)
-                head.Commits[i] = PrimitiveSerializer.Int64.ReadFrom(stream);
-            return  head;
-        }
-
-        public void WriteTo(Stream_Head value, Stream stream)
-        {
-            PrimitiveSerializer.Guid.WriteTo(value.Id, stream);
-            PrimitiveSerializer.Int32.WriteTo(value.Version, stream);
-            PrimitiveSerializer.Int32.WriteTo(value.Commits.Length, stream);
-            for(int i=0; i< value.Commits.Length; i++)
-                PrimitiveSerializer.Int64.WriteTo(value.Commits[i], stream);
-        }
     }
 
     // 16TB = 2^44
@@ -184,15 +61,5 @@ namespace File_System_ES
         public int Offset { get; set; }
     }
 
-    public class MyFileStream : FileStream
-    {
-        public MyFileStream(string path, FileMode mode)
-            : base(path, mode)
-        { }
 
-        public override void Flush()
-        {
-            base.Flush(true);
-        }
-    }
 }
