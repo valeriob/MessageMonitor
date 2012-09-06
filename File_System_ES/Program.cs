@@ -29,9 +29,9 @@ namespace File_System_ES
             for (int i = 0; i < number_Of_Inserts; i++)
             {
                 tree.Put(i, "text about " + i);
-                //result = tree.Get(i);
-                //if(i-1>=0)
-                //    result = tree.Get(i-1);
+                result = tree.Get(i);
+                if(i-1>=0)
+                    result = tree.Get(i-1);
             }
 
             for (int i = number_Of_Inserts; i < 0; i--)

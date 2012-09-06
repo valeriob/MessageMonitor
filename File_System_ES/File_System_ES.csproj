@@ -49,6 +49,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Append\BPTree.Usage.cs" />
     <Compile Include="Basic_Heap.cs" />
     <Compile Include="BPTree.cs" />
     <Compile Include="Append\BPTree.cs" />

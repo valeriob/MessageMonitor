@@ -17,7 +17,6 @@ namespace File_System_ES.Append
         
         protected int Size { get; set; }
 
-
         public Dictionary<long, int> _readMemory_Count = new Dictionary<long, int>();
         public Dictionary<long, int> _writeMemory_Count = new Dictionary<long, int>();
         int current_Depth;
@@ -278,34 +277,30 @@ namespace File_System_ES.Append
             Node node = Root;// Read_Node(null, 0);
             if (UncommittedRoot != null)
                 node = UncommittedRoot;
+            return Find_Leaf_Node(key, node);
+        }
+
+        protected Node Find_Leaf_Node(int key, Node root)
+        {
             int depth = 0;
-            while (!node.IsLeaf)
+            while (!root.IsLeaf)
             {
-                for (int i = 0; i <= node.Key_Num; i++)
-                    if (i == node.Key_Num || key < node.Keys[i])
+                for (int i = 0; i <= root.Key_Num; i++)
+                    if (i == root.Key_Num || key < root.Keys[i])
                     {
-                        node = Read_Node(node, node.Pointers[i]);
+                        root = Read_Node(root, root.Pointers[i]);
                         depth++;
                         break;
                     }
             }
             current_Depth = depth;
-            return node;
+            return root;
         }
 
 
 
-        protected void Fixup_Addresses(Node root)
-        {
-            if (root.IsLeaf)
-                return;
-            for (int i = 0; i < root.Key_Num +1; i++) 
-            {
-                var child = Pending_Nodes.Single( n=> n.Address == root.Pointers[i]);
-                child.Parent = root;
-                Fixup_Addresses(child);
-            }
-        }
+
+
     }
     
 }

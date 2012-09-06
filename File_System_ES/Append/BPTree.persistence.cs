@@ -9,12 +9,7 @@ namespace File_System_ES.Append
 {
     public partial class BPlusTree
     {
-        public Queue<long> Empty_Slots { get; set; }
-        public List<long> Reserved_Empty_Slots { get; set; }
-        public List<long> Freed_Empty_Slots { get; set; }
-
         public List<Node> Pending_Nodes { get; set; }
-        public Dictionary<long,Node> Cached_Nodes { get; set; }
 
         private long _index_Pointer;
         private long Index_Pointer()
@@ -30,64 +25,9 @@ namespace File_System_ES.Append
         private long _committed_Index_Pointer;
 
 
-        protected void Free_Address(long address)
-        {
-            if(address != 0)
-                Freed_Empty_Slots.Add(address);
-        }
 
 
-        protected bool Should_Reuse_Old_Addresses()
-        {
-            return false;
-            var size = Node.Size_In_Bytes(Size);
-            //var interval = Get_Intervall((current_Hight + 1) * size * 2 + 1, size);
-            //return interval.HasValue && interval.
-            return Contiguos_Space(size) > ((current_Depth + 1 ) * size * 2 + 1);
-            return Empty_Slots.Any();
-        }
-
-        public long Contiguos_Space(int blockSize)
-        {
-            if (Empty_Slots.Count == 0)
-                return 0;
-
-            var space = Empty_Slots.ToArray();
-            long last = space[0];
-
-            for (int i = 1; i < space.Length; i++)
-            {
-                if (last != 0 && last + blockSize != space[i])
-                    break;
-                last = space[i];
-            }
-            return last - space[0];
-        }
-
-        public struct Intervall { public long From; public long To; }
-        public Intervall? Get_Intervall(int minSize, int blockSize)
-        {
-            var space = Empty_Slots.ToArray();
-            long last = space[0];
-
-            for (int i = 1; i < space.Length; i++)
-            {
-                if (space[i] - last >= minSize)
-                { //found 
-                    return new Intervall { From = last, To = space[i] };
-                }
-                else
-                {
-                    if (last + blockSize != space[i])
-                    { 
-                        // reset sequence
-                        last = space[i];
-                    }
-                }
-            }
-            return null;
-        }
-
+  
 
         protected void Write_Node(Node node)
         {
@@ -122,7 +62,9 @@ namespace File_System_ES.Append
         protected Node Read_Node(Node parent, long address)
         {
             //if (Cached_Nodes.ContainsKey(address))
-            //    return Cached_Nodes[address];
+            //{
+            //    var cached = Cached_Nodes[address];
+            //}
 
             Index_Stream.Seek(address, SeekOrigin.Begin);
 
