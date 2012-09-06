@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Messaging;
 using System.Text;
 using System.Threading.Tasks;
 using NServiceBus;
@@ -29,12 +30,28 @@ namespace MessageMonitor.Service
             }
             return default(V);
         }
+
         public static DateTime? To_DateTime(this string value)
         {
             DateTime date;
             if (DateTime.TryParse(value, out date))
                 return date;
             else return null;
+        }
+
+
+        public static bool Queue_Contains_Messages(this MessageQueue queue)
+        {
+            try
+            {
+                var msg = queue.Peek(TimeSpan.Zero);
+                return true;
+            }
+            catch (MessageQueueException ex)
+            {
+                bool isEmpty = ex.MessageQueueErrorCode == MessageQueueErrorCode.MessageNotFound;
+                return !isEmpty;
+            }
         }
     }
 }

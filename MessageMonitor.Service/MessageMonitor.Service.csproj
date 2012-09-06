@@ -70,16 +70,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Audit_Handler.cs" />
-    <Compile Include="Audit_Message_Mutator.cs" />
-    <Compile Include="Check_Error_Queue_Saga.cs" />
+    <Compile Include="Handlers\Audit_Handler.cs" />
+    <Compile Include="Handlers\Audit_Message_Mutator.cs" />
+    <Compile Include="Sagas\Check_Error_Queue_Saga.cs" />
     <Compile Include="Configure_This_Endpoint.cs" />
     <Compile Include="Mapping_Extensions.cs" />
     <Compile Include="Extensions.cs" />
-    <Compile Include="Messages.cs" />
-    <Compile Include="Msmq_Utilities.cs" />
-    <Compile Include="NServiceBus_Queue_Listener.cs" />
-    <Compile Include="NServiceBus_Failed_Message.cs" />
+    <Compile Include="Messages\Messages.cs" />
+    <Compile Include="MSMQ\NServiceBus_Queue_Listener.cs" />
+    <Compile Include="Messages\NServiceBus_Failed_Message.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

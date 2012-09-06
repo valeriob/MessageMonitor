@@ -37,7 +37,7 @@ namespace MessageMonitor.Service
         public void Handle(Start_Monitoring_Queue message)
         {
             var manager = MSMQ_Multi_Queue_Notification_Listener.Instance();
-            manager.Start_Monitoring_Queue(Address.Parse(message.Queue_Name));
+            manager.Start_Monitoring_Queue(message.Queue_Name);
         }
 
         public void Handle(Queue_Alarm message)

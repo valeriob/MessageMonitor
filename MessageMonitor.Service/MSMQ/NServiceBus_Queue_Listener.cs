@@ -31,7 +31,7 @@ namespace MessageMonitor.Service
     public class MSMQ_Multi_Queue_Notification_Listener 
     {
         protected IBus Bus { get; set; }
-        public List<Address> Queues_To_Monitor { get; set; }
+        public List<string> Queues_To_Monitor { get; set; }
 
 
         static MSMQ_Multi_Queue_Notification_Listener _instance;
@@ -47,18 +47,19 @@ namespace MessageMonitor.Service
         public MSMQ_Multi_Queue_Notification_Listener(IBus bus)
         {
             Bus = bus;
-            Queues_To_Monitor = new List<Address>();
+            Queues_To_Monitor = new List<string>();
         }
 
 
+        //public void Start_Monitoring_Queue(string queueName)
+        //{
+        //    Start_Monitoring_Queue(Address.Parse(queueName));
+        //}
         public void Start_Monitoring_Queue(string queueName)
         {
-            Start_Monitoring_Queue(Address.Parse(queueName));
-        }
-        public void Start_Monitoring_Queue(Address queueName)
-        {
-            var path = NServiceBus.Utils.MsmqUtilities.GetFullPath(queueName);
-            var queue = new MessageQueue(path, QueueAccessMode.PeekAndAdmin);
+            //var path = NServiceBus.Utils.MsmqUtilities.GetFullPath(queueName);
+
+            var queue = new MessageQueue(queueName, QueueAccessMode.PeekAndAdmin);
             var mpf = new System.Messaging.MessagePropertyFilter();
             mpf.SetAll();
             queue.MessageReadPropertyFilter = mpf;

@@ -38,6 +38,7 @@ namespace MessageMonitor.Service
             //Bus.Subscribe<NServiceBus_Audit_Message>();
 
             var queueName = Address.Parse("MessageMonitorAudit");
+            queueName = Address.Parse("onmonitor_commandqueue_error@orowebapp.orogel.local");
 
             NServiceBus.Utils.MsmqUtilities.CreateQueueIfNecessary(queueName, WindowsIdentity.GetCurrent().Name);
 
@@ -47,12 +48,17 @@ namespace MessageMonitor.Service
             var audit = new NServiceBus_MSMQ_Audit_Queue_Listener(Bus, queueName);
             audit.Start();
 
+            //var queues = System.Messaging.MessageQueue.GetPrivateQueuesByMachine("orowebapp.orogel.local");
+
+            MSMQ_Multi_Queue_Notification_Listener.Instance().Start_Monitoring_Queue("");
+     
             //var fault = new NServiceBus_MSMQ_Fault_Queue_Listener(Bus, "error");
             //audit.Start();
 
             var container = MessageMonitor.Infrastructure.Container.Instance();
             var service = container.Resolve<MessageMonitor.Services.NServiceBus_Audit_Handler>();
             service.Statistics();
+            
         }
 
         public void Stop()
