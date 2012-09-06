@@ -5,29 +5,16 @@ using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 
-namespace File_System_ES.V3
+namespace File_System_ES
 {
-    public partial class StringBPlusTree
+    public partial class String_BPlusTree
     {
-        public BPlusTree BPlusTree { get; set; }
+        public IBPlusTree BPlusTree { get; set; }
 
-        public StringBPlusTree(Stream infoStream, Stream indexStream, Stream dataStream)
+        public String_BPlusTree(IBPlusTree tree)
         {
-            BPlusTree = new BPlusTree(infoStream, indexStream, dataStream);
+            BPlusTree = tree;
         }
-
-
-        public void Commit()
-        {
-            BPlusTree.Commit();
-        }
-
-        public void RollBack()
-        {
-            BPlusTree.Rollback();
-        }
-
-
    
 
         public string Get(int key)

@@ -9,4 +9,5 @@ packages/
 *.mdf
 *.ldf
 *.vspx
+*.vsp
 *.psess

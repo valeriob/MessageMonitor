@@ -12,36 +12,40 @@ namespace File_System_ES
     {
         static void Main(string[] args)
         {
-            //Stream infoStream = new MemoryStream();
-            //Stream indexStream = new MemoryStream();
-            //Stream dataStream = new MemoryStream();
-            var infoStream = new FileStream("info.dat", FileMode.OpenOrCreate);
-            var indexStream = new MyFileStream("index.dat", FileMode.OpenOrCreate);
-            var dataStream = new FileStream("data.dat", FileMode.OpenOrCreate);
+            Stream indexStream = new MemoryStream();
+            Stream dataStream = new MemoryStream();
+            //var indexStream = new FileStream("index.dat", FileMode.Truncate);
+            //var dataStream = new FileStream("data.dat", FileMode.Truncate);
 
             string result;
-            var tree = new V3.StringBPlusTree(infoStream, indexStream, dataStream);
+            var appendBpTree = new Append.BPlusTree(indexStream, dataStream);
+            var tree = new String_BPlusTree(appendBpTree);
+  
             var rnd = new Random(DateTime.Now.Millisecond);
-            int number_Of_Inserts = 20000;
+            int number_Of_Inserts = 10000;
             var watch = new Stopwatch();
             watch.Start();
 
             for (int i = 0; i < number_Of_Inserts; i++)
             {
                 tree.Put(i, "text about " + i);
-                if(i % 100 == 0)
-                    tree.Commit();
+                //result = tree.Get(i);
+                //if(i-1>=0)
+                //    result = tree.Get(i-1);
             }
 
-            //for (int i = 0; i < number_Of_Inserts; i++)
-            //{
-            //    result = tree.Get(i);
-            //}
+            for (int i = number_Of_Inserts; i < 0; i--)
+            {
+                result = tree.Get(i);
+            }
 
             watch.Stop();
             Console.WriteLine(watch.Elapsed);
-            Console.WriteLine("Total reads : " + tree.BPlusTree._readMemory_Count.Sum(s => s.Value));
-            Console.WriteLine("Total writes : " + tree.BPlusTree._writeMemory_Count.Sum(s => s.Value));
+
+            //Console.WriteLine("Total reads : " + tree.BPlusTree._readMemory_Count.Sum(s => s.Value));
+            //Console.WriteLine("Total writes : " + tree.BPlusTree._writeMemory_Count.Sum(s => s.Value));
+
+            //Console.WriteLine("Free Pages : " + tree.BPlusTree.Empty_Slots.Count());
 
             Console.ReadLine();
         }

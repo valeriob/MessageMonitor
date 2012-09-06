@@ -49,16 +49,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Basic_Heap.cs" />
     <Compile Include="BPTree.cs" />
-    <Compile Include="BPTree_V2.cs" />
-    <Compile Include="BPTree_V3.cs" />
-    <Compile Include="BPTree_V3.persistence.cs" />
-    <Compile Include="BPTree_V3.Node.cs" />
-    <Compile Include="BPTree.persistence.cs" />
-    <Compile Include="BPTree.node.cs" />
+    <Compile Include="Append\BPTree.cs" />
+    <Compile Include="Append\BPTree.persistence.cs" />
+    <Compile Include="Append\BPTree.Node.cs" />
     <Compile Include="String_BPTree_V3.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="UpdateInPlace\BPTree.cs" />
+    <Compile Include="UpdateInPlace\BPTree.Node.cs" />
+    <Compile Include="UpdateInPlace\BPTree.persistence.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
