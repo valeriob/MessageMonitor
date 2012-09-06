@@ -5,9 +5,9 @@ using System.Text;
 
 namespace File_System_ES
 {
-    public class BasicHeap
+    public class BasicHeap<TIndex>
     {
-        private List<HeapNode> InnerList = new List<HeapNode>();
+        private List<HeapNode<TIndex>> InnerList = new List<HeapNode<TIndex>>();
 
         public BasicHeap() { }
 
@@ -19,10 +19,10 @@ namespace File_System_ES
             }
         }
 
-        public void Push(int index, float weight)
+        public void Push(TIndex index, long weight)
         {
             int p = InnerList.Count, p2;
-            InnerList.Add(new HeapNode(index, weight)); // E[p] = O
+            InnerList.Add(new HeapNode<TIndex>(index, weight)); // E[p] = O
             do
             {
                 if (p == 0)
@@ -31,7 +31,7 @@ namespace File_System_ES
                 p2 = (p - 1) >> 1;
                 if (InnerList[p].weight < InnerList[p2].weight)
                 {
-                    HeapNode h = InnerList[p];
+                    var h = InnerList[p];
                     InnerList[p] = InnerList[p2];
                     InnerList[p2] = h;
 
@@ -42,9 +42,9 @@ namespace File_System_ES
             } while (true);
         }
 
-        public int Pop()
+        public TIndex Pop()
         {
-            HeapNode result = InnerList[0];
+            var result = InnerList[0];
             int p = 0, p1, p2, pn;
             InnerList[0] = InnerList[InnerList.Count - 1];
             InnerList.RemoveAt(InnerList.Count - 1);
@@ -61,7 +61,7 @@ namespace File_System_ES
                 if (p == pn)
                     break;
 
-                HeapNode h = InnerList[p];
+                var h = InnerList[p];
                 InnerList[p] = InnerList[pn];
                 InnerList[pn] = h;
 
@@ -70,16 +70,16 @@ namespace File_System_ES
         }
     }
 
-    public struct HeapNode
+    public struct HeapNode<I>
     {
-        public HeapNode(int i, float w)
+        public HeapNode(I i, long w)
         {
             index = i;
             weight = w;
 
         }
-        public int index;
-        public float weight;
+        public I index;
+        public long weight;
     }
 
 }
