@@ -14,9 +14,10 @@ namespace File_System_ES.Benchmarks
         {
             var benchmarks = new Benchmark[] 
             { 
-               new Ravendb(),
+               //new Ravendb(),
                new BPlusTree(),
-               new Esent(),
+               //new Esent(),
+               //new SqlServer()
             };
 
             var results = new List<Result>();
@@ -51,7 +52,7 @@ namespace File_System_ES.Benchmarks
             var speed = delta.TotalSeconds == 0 ? float.PositiveInfinity: Count / delta.TotalSeconds;
             var batch = Batch.HasValue ? "( " + Batch + " )" : "";
 
-            return string.Format("{0} -   {1} {2} tx in {3}. {4} tx/s", Name, Count, batch,  Stop - Start, speed);
+            return string.Format("{0} -   {1} {2} tx in {3:0.000}. {4:0.000} tx/s", Name, Count, batch, delta.TotalSeconds, speed);
         }
     }
 }

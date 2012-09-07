@@ -1,22 +1,35 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
 namespace File_System_ES.Benchmarks
 {
-    public class SqlServer : Benchmark
+    public class SqlServer : Benchmark, IDisposable
     {
+        SqlConnection con;
+        public SqlServer()
+        { 
+            con = new SqlConnection(@"Data Source=(localdb)\Projects;Initial Catalog=Test;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False");
+            con.Open();
+
+            using(var cmd = con.CreateCommand())
+            {
+                cmd.CommandText = "TRUNCATE TABLE Test.dbo.Table_Insert";
+                cmd.ExecuteNonQuery();
+            }
+        }
         public override void Run(int count, int? batch)
         {
-            using (var con = new System.Data.SqlClient.SqlConnection(@"Data Source=(localdb)\Projects;Initial Catalog=Test;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False"))
-            {
-                con.Open();
+            batch = batch.GetValueOrDefault(1);
 
-                for (int i = 0; i < count; i++)
+            for (int i = 0; i < count; i++)
+            {
+                var trans = con.BeginTransaction();
+                for (int j = 0; j < batch; j+= batch.Value)
                 {
-                    var trans = con.BeginTransaction();
                     using (var cmd = con.CreateCommand())
                     {
                         cmd.Transaction = trans;
@@ -27,15 +40,20 @@ namespace File_System_ES.Benchmarks
                         cmd.Parameters.Add(par);
 
                         par = cmd.CreateParameter();
-                        par.Value = "value " + i;
+                        par.Value = "value " + i + " / "+j;
                         par.ParameterName = "value";
                         cmd.Parameters.Add(par);
 
                         cmd.ExecuteNonQuery();
                     }
-                    trans.Rollback();
+                    trans.Commit();
                 }
             }
+        }
+
+        public void Dispose()
+        {
+            throw new NotImplementedException();
         }
     }
 }

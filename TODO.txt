@@ -1,7 +1,11 @@
 
 - Event store browsing
 
-- NServiceBus Audit
+- NServiceBus Audit (add queue to monitor, store messages from queue, browse audit)
+
+- NserviceBus Errors (add error queue to monitor, save faulty history, check queue state) 
+
+
 
 - NServiceBus queue configuration
 - NserviceBus queue perf counter monitoring

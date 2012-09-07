@@ -65,7 +65,7 @@ namespace File_System_ES.Append
                 Root = UncommittedRoot;
                 UncommittedRoot = null;
 
-               // Index_Stream.Flush();
+                Index_Stream.Flush();
 
                 // add free page to
                 foreach (var address in Freed_Empty_Slots)
