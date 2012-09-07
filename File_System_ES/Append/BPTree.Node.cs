@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
@@ -49,14 +50,17 @@ namespace File_System_ES.Append
 
         public bool Needs_To_Be_Splitted()
         {
-            return (Key_Num == Keys.Length);
+            return Key_Num == Keys.Length;
         }
 
         public void Update_Child_Address(long previousAddress, long newAddress)
         {
             for (int i = 0; i < Key_Num + 1; i++)
                 if (Pointers[i] == previousAddress)
+                {
                     Pointers[i] = newAddress;
+                    return;
+                }
         }
 
         public Split Split()
@@ -110,6 +114,7 @@ namespace File_System_ES.Append
                 keys += Keys[i] + ", ";
             keys = keys.TrimEnd(' ', ',');
 
+            //for(int i=0; i< Key_Num + 1
             string root = Parent == null ? "(Root)" : "";
             if (IsLeaf)
                 return string.Format("{2} {1} Leaf : {0}", keys, root, Address);
@@ -128,9 +133,9 @@ namespace File_System_ES.Append
         {
             var node = Create_New(Keys.Length, IsLeaf);
             node.Key_Num = Key_Num;
-            node.Keys = Keys;
-            node.Pointers = Pointers;
-            node.Versions = Versions;
+            Array.Copy(Keys, node.Keys, Keys.Length);
+            Array.Copy(Pointers, node.Pointers, Pointers.Length);
+            Array.Copy(Versions, node.Versions, Versions.Length);
             node.Parent = Parent;
             node.Address = Address;
             return node;
@@ -141,12 +146,47 @@ namespace File_System_ES.Append
             Array.Copy(BitConverter.GetBytes(Key_Num), 0, buffer, startIndex, 4);
             buffer[startIndex + 4] = IsLeaf ? (byte)1 : (byte)0;
 
+            int offset = startIndex + 5;
             for (int i = 0; i < Key_Num; i++)
-                Array.Copy(BitConverter.GetBytes(Keys[i]), 0, buffer, startIndex +5 + 4 * i, 4);
+                Array.Copy(BitConverter.GetBytes(Keys[i]), 0, buffer, offset + 4 * i, 4);
+
+            offset = startIndex + 5 + 4 * Keys.Length;
+            for (int i = 0; i < Key_Num + 1; i++)
+                Array.Copy(BitConverter.GetBytes(Pointers[i]), 0, buffer, offset + i * 8, 8);
+        }
+
+        public void To_Bytes_Explicit(byte[] buffer, int startIndex)
+        {
+            Array.Copy(BitConverter.GetBytes(Key_Num), 0, buffer, startIndex, 4);
+            buffer[startIndex + 4] = IsLeaf ? (byte)1 : (byte)0;
+
+            int offset = startIndex + 5;
+            for (int i = 0; i < Key_Num; i++)
+            {
+                var tmp = new Bytes_To_Int { integer = Keys[i] };
+                buffer[offset + i * 8] = tmp.byte0;
+                buffer[offset + i * 8 + 1] = tmp.byte1;
+                buffer[offset + i * 8 + 2] = tmp.byte2;
+                buffer[offset + i * 8 + 3] = tmp.byte3;
+            }
+                
+            offset = startIndex + 5 + 4 * Keys.Length;
 
             for (int i = 0; i < Key_Num + 1; i++)
-                Array.Copy(BitConverter.GetBytes(Pointers[i]), 0, buffer, startIndex + 5 + 4 * Keys.Length + i * 8, 8);
+            {
+                var tmp = new Bytes_To_Long { longint = Pointers[i]  };
+                buffer[offset + i * 8] = tmp.byte0;
+                buffer[offset + i * 8 + 1] = tmp.byte1;
+                buffer[offset + i * 8 + 2] = tmp.byte2;
+                buffer[offset + i * 8 + 3] = tmp.byte3;
+                buffer[offset + i * 8 + 4] = tmp.byte4;
+                buffer[offset + i * 8 + 5] = tmp.byte5;
+                buffer[offset + i * 8 + 6] = tmp.byte6;
+                buffer[offset + i * 8 + 7] = tmp.byte7;
+            }
         }
+
+
 
         public byte[] To_Bytes()
         {
@@ -174,8 +214,9 @@ namespace File_System_ES.Append
             for (int i = 0; i < node.Key_Num; i++)
                 node.Keys[i] = BitConverter.ToInt32(buffer, 5 + 4 * i);
 
+            int offset = 5 + 4 * size;
             for (int i = 0; i < node.Key_Num + 1; i++)
-                node.Pointers[i] = BitConverter.ToInt64(buffer, 5 + 4 * size + 8 * i);
+                node.Pointers[i] = BitConverter.ToInt64(buffer, offset + 8 * i);
 
             return node;
         }
@@ -239,5 +280,46 @@ namespace File_System_ES.Append
         public Node Node_Left { get; set; }
         public Node Node_Right { get; set; }
         public int Mid_Key { get; set; }
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    struct Bytes_To_Int
+    {
+        [FieldOffset(0)]
+        public byte byte0;
+        [FieldOffset(1)]
+        public byte byte1;
+        [FieldOffset(2)]
+        public byte byte2;
+        [FieldOffset(3)]
+        public byte byte3;
+
+        [FieldOffset(0)]
+        public int integer;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    struct Bytes_To_Long
+    {
+        [FieldOffset(0)]
+        public byte byte0;
+        [FieldOffset(1)]
+        public byte byte1;
+        [FieldOffset(2)]
+        public byte byte2;
+        [FieldOffset(3)]
+        public byte byte3;
+
+        [FieldOffset(4)]
+        public byte byte4;
+        [FieldOffset(5)]
+        public byte byte5;
+        [FieldOffset(6)]
+        public byte byte6;
+        [FieldOffset(7)]
+        public byte byte7;
+
+        [FieldOffset(0)]
+        public long longint;
     }
 }

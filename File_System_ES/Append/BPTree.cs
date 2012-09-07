@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
@@ -19,7 +20,8 @@ namespace File_System_ES.Append
 
         public Dictionary<long, int> _readMemory_Count = new Dictionary<long, int>();
         public Dictionary<long, int> _writeMemory_Count = new Dictionary<long, int>();
-        int current_Depth;
+        public long cache_hits;
+        public long cache_misses;
 
         public int Block_Size { get; set; }
 
@@ -31,7 +33,6 @@ namespace File_System_ES.Append
             Index_Stream = indexStream;
             Data_Stream = dataStream;
 
-            Empty_Slots = new List<Block>();
             Reserved_Empty_Slots = new List<long>();
             Freed_Empty_Slots = new List<long>();
             Pending_Nodes = new List<Node>();
@@ -44,68 +45,57 @@ namespace File_System_ES.Append
             Init();
         }
 
-     
+
+        int commitsCount;
         public void Commit()
         {
-            try
-            {
-                long baseAddress = Index_Pointer();
-                int buffer_Size = Pending_Nodes.Count * Block_Size;
+            commitsCount++;
+            long baseAddress = Index_Pointer();
+            int buffer_Size = Pending_Nodes.Count * Block_Size;
 
-                var block = Look_For_Available_Block(buffer_Size);
-                if (block != null)
-                    baseAddress = block.Base_Address;
-                
+            //var block = Look_For_Available_Block(buffer_Size);
+            //if (block != null)
+            //    baseAddress = block.Base_Address();
 
-                long nextPointer = baseAddress;
-                Update_Addresses_From(Pending_Nodes, UncommittedRoot, ref nextPointer);
+  
+            long nextPointer = baseAddress;
+            Update_Addresses_From(Pending_Nodes, UncommittedRoot, ref nextPointer);
 
-                var toUpdate = Pending_Nodes.OrderBy(n=> n.Address).ToArray();
-                var buffer = new byte[buffer_Size];
-                for (int i = 0; i < toUpdate.Length; i++)
-                    toUpdate[i].To_Bytes(buffer, i * Block_Size);
-                
-
-                Index_Stream.Seek(baseAddress, SeekOrigin.Begin);
-                Index_Stream.Write(buffer, 0, buffer.Length);
+            var toUpdate = Pending_Nodes.OrderBy(n => n.Address).ToArray();
+            var buffer = new byte[buffer_Size];
+            for (int i = 0; i < toUpdate.Length; i++)
+                toUpdate[i].To_Bytes(buffer, i * Block_Size);
 
 
-                Index_Stream.Seek(0, SeekOrigin.Begin);
-                Index_Stream.Write(BitConverter.GetBytes(UncommittedRoot.Address), 0, 8);
-              
-                if (block != null)
-                {
-                    if (block.IsEmpty())
-                        Remove_Block(block);
-                    block.Reserve_Size(buffer_Size);
-                }
-                else
-                    _committed_Index_Pointer = _index_Pointer = nextPointer;
+            Index_Stream.Seek(baseAddress, SeekOrigin.Begin);
+            Index_Stream.Write(buffer, 0, buffer.Length);
 
 
-                Root = UncommittedRoot;
-                UncommittedRoot = null;
+            Index_Stream.Seek(0, SeekOrigin.Begin);
+            Index_Stream.Write(BitConverter.GetBytes(UncommittedRoot.Address), 0, 8);
 
-                //Index_Stream.Flush();
 
-                // add free page to
-                foreach (var address in Freed_Empty_Slots)
-                    //Empty_Slots.Enqueue(address);
-                    Add_Block_Address_To_Available_Space(address);
+            //if (block != null)
+            //    Block_Usage_Finished(block, buffer_Size);
+            //else
+            _committed_Index_Pointer = _index_Pointer = nextPointer;
 
-                Cached_Nodes.Clear();
-                foreach (var node in Pending_Nodes)
-                    Cached_Nodes[node.Address] = node;
 
-                Pending_Nodes.Clear();
-                Freed_Empty_Slots.Clear();
-                Reserved_Empty_Slots.Clear();
-                
-            }
-            catch (Exception ex)
-            {
-                Rollback();
-            }
+            Root = UncommittedRoot;
+            UncommittedRoot = null;
+
+            //Index_Stream.Flush();
+
+            // add free page to
+            //Add_Block_Address_To_Available_Space(Freed_Empty_Slots);
+
+            Cached_Nodes.Clear();
+            foreach (var node in Pending_Nodes)
+                Cached_Nodes[node.Address] = node;
+
+            Pending_Nodes.Clear();
+            Freed_Empty_Slots.Clear();
+            Reserved_Empty_Slots.Clear();
 
         }
 
@@ -156,8 +146,15 @@ namespace File_System_ES.Append
 
         public void Put(int key, byte[] value)
         {
-            var leaf = Find_Leaf_Node(key);
-
+            Node leaf = null;
+            try
+            {
+                leaf = Find_Leaf_Node(key);
+            }
+            catch (Exception ex)
+            { 
+            
+            }
             var data_Address = Data_Pointer();
             Write_Data(value, key, 0); // todo versionFromLeaf +1;
 
@@ -172,6 +169,7 @@ namespace File_System_ES.Append
             UncommittedRoot = Insert_in_node(leaf, key, data_Address);
             Commit();
         }
+
         public bool Delete(int key)
         {
             var leaf = Find_Leaf_Node(key);
@@ -180,13 +178,19 @@ namespace File_System_ES.Append
                 {
                     Delete_Key_In_Node(leaf, key);
                     long previous_Address = leaf.Address;
-                    //Update_Node(leaf);
                     Write_Node(leaf);
-                    UncommittedRoot = Clone_Chain_To_Root(leaf, previous_Address);
+                    UncommittedRoot = Clone_Anchestors_Of(leaf);
                     return true;
                 }
             return false;
         }
+
+        public void Flush()
+        {
+            Index_Stream.Flush();
+        }
+
+
 
         protected void Delete_Key_In_Node(Node node, int key)
         {
@@ -199,7 +203,7 @@ namespace File_System_ES.Append
             node.Key_Num--;
         }
 
-        protected Node Insert_in_node(Node node, int key, long address, Node[] children = null)// int? keyToUpdate, long? addressToUpdate)
+        protected Node Insert_in_node(Node node, int key, long address, Node[] children = null)
         {
             var newNode = node.Create_New_One_Like_This();
             newNode.Insert_Key(key, address);
@@ -208,7 +212,7 @@ namespace File_System_ES.Append
             if (newNode.Needs_To_Be_Splitted())
             {
                 var split = newNode.Split();
-                // TODO? trova il giusto padre per children
+                // TODO !!!! trova il giusto padre per children !!!
 
                 if (children != null)
                     foreach (var child in children)
@@ -232,9 +236,7 @@ namespace File_System_ES.Append
                 }
                 else
                 {
-                    var newParent = Insert_in_node(split.Node_Left.Parent, split.Mid_Key,
-                        split.Node_Right.Address, new[] { split.Node_Left, split.Node_Right });
-                    newRoot = newParent;
+                    newRoot = Insert_in_node(split.Node_Left.Parent, split.Mid_Key, split.Node_Right.Address, new[] { split.Node_Left, split.Node_Right });
                 }
             }
             else
@@ -250,7 +252,7 @@ namespace File_System_ES.Append
             return newRoot;
         }
 
-        public Node Clone_Anchestors_Of(Node node)
+        protected Node Clone_Anchestors_Of(Node node)
         {
             if (node.Parent == null)
                 return node;
@@ -259,86 +261,9 @@ namespace File_System_ES.Append
             node.Parent = newParent;
             Write_Node(newParent);
 
-            var newGranParent = Clone_Anchestors_Of(newParent);
-            //newParent.Parent = newGranParent;
-            return newGranParent;
+            return Clone_Anchestors_Of(newParent);
         }
 
-        public Node Clone_Chain_To_Root(Node node, long prev_Address)
-        {
-            var newNode = node.Create_New_One_Like_This();
-
-            if (newNode.Parent == null)
-                return newNode;
-
-            var parent = newNode.Parent;
-            for (int i = 0; i < parent.Key_Num +1; i++)
-                if (parent.Pointers[i] == prev_Address)
-                    parent.Pointers[i] = newNode.Address;
-
-            prev_Address = parent.Address;
-            Write_Node(parent);
-
-            return Clone_Chain_To_Root(parent, prev_Address);
-        }
-
-        protected Node Split(Node node)
-        {
-            var node_Left = node;//.Create_New_One_Like_This();
-            var node_Right = Node.Create_New(Size, node_Left.IsLeaf);
-            var mid_Key = node_Left.Keys[Size / 2];
-
-            node_Right.Key_Num = Size - Size / 2 - 1;
-            for (int i = 0; i < node_Right.Key_Num; i++)
-            {
-                node_Right.Keys[i] = node_Left.Keys[i + (Size / 2 + 1)];
-                node_Right.Pointers[i] = node_Left.Pointers[i + (Size / 2 + 1)];
-            }
-
-            node_Right.Pointers[node_Right.Key_Num] = node_Left.Pointers[Size]; // double linked list
-            node_Left.Key_Num = Size / 2;
-
-            if (node_Left.IsLeaf)
-            {
-                node_Left.Key_Num++;
-                node_Right.Pointers[0] = node_Left.Pointers[0];
-
-                node_Left.Pointers[0] = node_Right.Address;  // double linked list
-                mid_Key = node_Left.Keys[Size / 2 + 1];
-            }
-
-            Write_Node(node_Right);
-
-            //Update_Node(node);
-            //long previous_Address = node_Left.Address;
-            //Write_Node(node_Left);
-
-            if (node_Left.Parent == null) // if i'm splitting the root, i need a new up level
-            {
-                var root = Node.Create_New(Size, false);
-                root.Keys[0] = mid_Key;
-                root.Pointers[0] = node_Left.Address;
-                root.Pointers[1] = node_Right.Address;
-                root.Key_Num = 1;
-                node_Left.Parent = root;
-                Write_Node(root);
-
-                node_Left.Parent = node_Right.Parent = root;
-                return root;
-            }
-            else
-            {
-                //node_Right.Parent = node_Left.Parent;
-                //for (int i = 0; i < node_Left.Parent.Key_Num + 1; i++)
-                //    if (node_Left.Parent.Pointers[i] == previous_Address)
-                //        node_Left.Parent.Pointers[i] = node_Left.Address;
-                var newParent = Insert_in_node(node_Left.Parent, mid_Key, node_Right.Address, new [] { node_Left, node_Right});
-                //node_Left.Parent = node_Right.Parent = newParent;
-                return newParent;
-            }
-        }
-
-       
         protected Node Find_Leaf_Node(int key)
         {
             Node node = Root;// Read_Node(null, 0);
@@ -360,16 +285,11 @@ namespace File_System_ES.Append
                         break;
                     }
             }
-            current_Depth = depth;
+
             return root;
         }
 
 
-
-        public void Flush()
-        {
-            Index_Stream.Flush();
-        }
 
     }
     

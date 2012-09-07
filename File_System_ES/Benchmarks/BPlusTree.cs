@@ -22,9 +22,8 @@ namespace File_System_ES.Benchmarks
             var indexStream = new MyFileStream(indexFile, FileMode.OpenOrCreate);
             var dataStream = new FileStream(dataFile, FileMode.OpenOrCreate  );
 
-            var appendBpTree = new Append.BPlusTree(indexStream, dataStream, 3);
+            var appendBpTree = new Append.BPlusTree(indexStream, dataStream, 11);
             tree = new String_BPlusTree(appendBpTree);
-            //tree.Commit();
         }
 
 
@@ -33,6 +32,8 @@ namespace File_System_ES.Benchmarks
             batch = batch.GetValueOrDefault(1);
 
             string result;
+
+
             for (int i = 0; i <= number_Of_Inserts; i += batch.Value)
             {
                 for(var j=0; j< batch; j++)
@@ -42,19 +43,11 @@ namespace File_System_ES.Benchmarks
                     //for (int k = i; k >= 0; k--)
                     //    result = tree.Get(k);
                     
-                    //tree.Flush();
                     //result = tree.Get(i);
-                    //if (i - 1 >= 0)
-                    //    result = tree.Get(i - 1);
                 }
-                //tree.Flush();
-                //tree.Commit();
+
             }
 
-            //for (int i = number_Of_Inserts; i >= 0; i--)
-            //{
-            //   result = tree.Get(i);
-            //}
         }
     }
 

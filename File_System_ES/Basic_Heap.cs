@@ -80,6 +80,11 @@ namespace File_System_ES
         }
         public I index;
         public long weight;
+
+        public override string ToString()
+        {
+            return string.Format("Idx : {0}, Weight : {1}", index, weight);
+        }
     }
 
 }

@@ -62,18 +62,19 @@ namespace File_System_ES.Append
         //    else
         //        _writeMemory_Count[address] = 1;
         //}
-
+        
         protected Node Read_Node(Node parent, long address)
         {
-            //if (Cached_Nodes.ContainsKey(address))
-            //{
-            //    var cached = Cached_Nodes[address];
-            //    return cached;
-            //}
+            if (Cached_Nodes.ContainsKey(address))
+            {
+                cache_hits++;
+                return Cached_Nodes[address];
+            }
+            cache_misses++;
 
             Index_Stream.Seek(address, SeekOrigin.Begin);
 
-            var buffer = new byte[Node.Size_In_Bytes(Size)];
+            var buffer = new byte[Block_Size];
 
             Index_Stream.Read(buffer, 0, buffer.Length);
 
