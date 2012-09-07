@@ -75,9 +75,9 @@ namespace File_System_ES.Append
               
                 if (block != null)
                 {
-                    block.Reserve_Size(buffer_Size);
                     if (block.IsEmpty())
-                        Empty_Slots.Remove(block);
+                        Remove_Block(block);
+                    block.Reserve_Size(buffer_Size);
                 }
                 else
                     _committed_Index_Pointer = _index_Pointer = nextPointer;

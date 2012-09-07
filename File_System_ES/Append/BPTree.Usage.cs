@@ -10,7 +10,7 @@ namespace File_System_ES.Append
         //public Queue<long> Empty_Slots { get; set; }
         public List<long> Reserved_Empty_Slots { get; set; }
         public List<long> Freed_Empty_Slots { get; set; }
-        public List<Block> Empty_Slots { get; set; }
+       
         public Dictionary<long,Node> Cached_Nodes { get; set; }
 
         protected void Free_Address(long address)
@@ -75,41 +75,75 @@ namespace File_System_ES.Append
         //    }
         //}
 
+        protected void Remove_Block(Block block)
+        {
+            _base_Address_Index.Remove(block.Base_Address);
+            _end_Address_Index.Remove(block.End_Address());
 
+            Empty_Slots.Remove(block);
+        }
+
+        List<Block> Empty_Slots = new List<Block>();
+        //Block[] Empty_Slots = new Block[1024];
+        Dictionary<long, Block> _base_Address_Index = new Dictionary<long, Block>();
+        Dictionary<long, Block> _end_Address_Index = new Dictionary<long, Block>();
         protected void Add_Block_Address_To_Available_Space(long address)
         {
             Block before = null;
             int beforeIdx = -1;
             Block after = null;
             int afterIdx = -1;
-            for (int i = 0; i < Empty_Slots.Count; i++)
-            {
-                if (Empty_Slots[i].Base_Address == address + Block_Size)
-                {
-                    before = Empty_Slots[i];
-                    beforeIdx = i;
-                }
-                if (Empty_Slots[i].End_Address() == address)
-                {
-                    after = Empty_Slots[i];
-                    afterIdx = i;
-                }
-            }
 
-            if(before != null && after != null)
+            if (_base_Address_Index.ContainsKey(address))
             {
-                Empty_Slots.RemoveAt(afterIdx);
+                before = _base_Address_Index[address];
+                before.Append_Block(Block_Size + after.Lenght);
+                if (_end_Address_Index.ContainsKey(address + Block_Size))
+                {
+                    after = _end_Address_Index[address];
+                    Empty_Slots.Remove(after);
+                }
+
                 before.Append_Block(Block_Size + after.Lenght);
             }
             else
             {
-                if(before != null)
-                    before.Prepend_Block(Block_Size);
-                if(after != null)
+                if (_end_Address_Index.ContainsKey(address + Block_Size))
+                {
+                    after = _end_Address_Index[address];
                     after.Append_Block(Block_Size);
-
-                 Empty_Slots.Add(new Block(address, Block_Size));
+                }
+                Empty_Slots.Add(new Block(address, Block_Size));
             }
+
+            //for (int i = 0; i < Empty_Slots.Count; i++)
+            //{
+            //    if (Empty_Slots[i].Base_Address == address + Block_Size)
+            //    {
+            //        before = Empty_Slots[i];
+            //        beforeIdx = i;
+            //    }
+            //    if (Empty_Slots[i].End_Address() == address)
+            //    {
+            //        after = Empty_Slots[i];
+            //        afterIdx = i;
+            //    }
+            //}
+
+            //if(before != null && after != null)
+            //{
+            //    Empty_Slots.RemoveAt(afterIdx);
+            //    before.Append_Block(Block_Size + after.Lenght);
+            //}
+            //else
+            //{
+            //    if(before != null)
+            //        before.Prepend_Block(Block_Size);
+            //    if(after != null)
+            //        after.Append_Block(Block_Size);
+
+            //     Empty_Slots.Add(new Block(address, Block_Size));
+            //}
 
         }
 
@@ -145,7 +179,7 @@ namespace File_System_ES.Append
     }
 
 
-    public class Block
+    public class Block : IComparable<Block>
     {
         public Block(long baseAddress, int lenght)
         {
@@ -187,6 +221,11 @@ namespace File_System_ES.Append
         public override string ToString()
         {
             return string.Format("From : {0}, To: {1}, Lenght: {1}",Base_Address, End_Address(), Lenght);
+        }
+
+        public int CompareTo(Block other)
+        {
+            throw new NotImplementedException();
         }
     }
 
