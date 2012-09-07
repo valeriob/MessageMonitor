@@ -83,15 +83,23 @@ namespace File_System_ES.Append
             }
         }
 
-        protected void Update_Addresses_From(Node root, long base_Address)
+
+        protected void Update_Addresses_From(List<Node> nodes, Node root, ref long base_Address)
         {
+            root.Address = base_Address;
+            base_Address += Block_Size;
             if (root.IsLeaf)
                 return;
-            for (int i = 0; i < root.Key_Num + 1; i++)
+
+            foreach (var child in nodes.Where(n => n.Parent == root))
             {
-                var child = Pending_Nodes.Single(n => n.Address == root.Pointers[i]);
-                child.Parent = root;
-                Fixup_Addresses(child);
+                //root.Update_Child_Address(child.Address, base_Address += Block_Size);
+                var new_Child_Address = base_Address;
+                var old_Child_Address = child.Address;
+                root.Update_Child_Address(old_Child_Address, new_Child_Address);
+
+                Update_Addresses_From(nodes, child, ref base_Address);
+                //root.Update_Child_Address(old_Child_Address, new_Child_Address);
             }
         }
 

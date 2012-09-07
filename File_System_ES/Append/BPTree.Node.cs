@@ -31,6 +31,64 @@ namespace File_System_ES.Append
 
 
 
+        public void Insert_Key(int key, long address)
+        {
+            int x = 0;
+            while (x < Key_Num && Keys[x] < key) x++;
+
+            for (int i = Key_Num; i > x; i--)
+                Keys[i] = Keys[i - 1];
+
+            for (int i = Key_Num + 1; i > x + 1; i--)
+                Pointers[i] = Pointers[i - 1];
+
+            Keys[x] = key;
+            Pointers[x + 1] = address;
+            Key_Num++;
+        }
+
+        public bool Needs_To_Be_Splitted()
+        {
+            return (Key_Num == Keys.Length);
+        }
+
+        public void Update_Child_Address(long previousAddress, long newAddress)
+        {
+            for (int i = 0; i < Key_Num + 1; i++)
+                if (Pointers[i] == previousAddress)
+                    Pointers[i] = newAddress;
+        }
+
+        public Split Split()
+        {
+            int size = Keys.Length;
+
+            var node_Left = Create_New_One_Like_This();
+            var node_Right = Node.Create_New(Keys.Length, node_Left.IsLeaf);
+            node_Right.Parent = node_Left.Parent;
+            var mid_Key = node_Left.Keys[size / 2];
+
+            node_Right.Key_Num = size - size / 2 - 1;
+            for (int i = 0; i < node_Right.Key_Num; i++)
+            {
+                node_Right.Keys[i] = node_Left.Keys[i + (size / 2 + 1)];
+                node_Right.Pointers[i] = node_Left.Pointers[i + (size / 2 + 1)];
+            }
+
+            node_Right.Pointers[node_Right.Key_Num] = node_Left.Pointers[size]; // double linked list
+            node_Left.Key_Num = size / 2;
+
+            if (node_Left.IsLeaf)
+            {
+                node_Left.Key_Num++;
+                node_Right.Pointers[0] = node_Left.Pointers[0];
+
+                node_Left.Pointers[0] = node_Right.Address;  // double linked list
+                mid_Key = node_Left.Keys[size / 2 + 1];
+            }
+
+            return new Split { Node_Left= node_Left,  Node_Right = node_Right, Mid_Key = mid_Key };
+        }
 
 
 
@@ -66,7 +124,7 @@ namespace File_System_ES.Append
         }
 
 
-        public Node Clone()
+        public Node Create_New_One_Like_This()
         {
             var node = Create_New(Keys.Length, IsLeaf);
             node.Key_Num = Key_Num;
@@ -174,5 +232,12 @@ namespace File_System_ES.Append
         }
 
 
+    }
+
+    public class Split
+    {
+        public Node Node_Left { get; set; }
+        public Node Node_Right { get; set; }
+        public int Mid_Key { get; set; }
     }
 }

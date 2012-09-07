@@ -48,7 +48,7 @@ namespace File_System_ES.Append
 
         protected void Write_Node(Node node, long address)
         {
-            node.Address = address;
+            //node.Address = address;
 
             Pending_Nodes.Add(node);
 
@@ -110,6 +110,8 @@ namespace File_System_ES.Append
             return data.Payload;
         }
 
+
+       
     }
 
 
