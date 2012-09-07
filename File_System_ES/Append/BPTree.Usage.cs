@@ -10,6 +10,8 @@ namespace File_System_ES.Append
         public Queue<long> Empty_Slots { get; set; }
         public List<long> Reserved_Empty_Slots { get; set; }
         public List<long> Freed_Empty_Slots { get; set; }
+        //public List<Block> Empty_Slots { get; set; }
+        public Dictionary<long,Node> Cached_Nodes { get; set; }
 
         protected void Free_Address(long address)
         {

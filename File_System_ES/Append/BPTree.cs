@@ -35,6 +35,7 @@ namespace File_System_ES.Append
             Reserved_Empty_Slots = new List<long>();
             Freed_Empty_Slots = new List<long>();
             Pending_Nodes = new List<Node>();
+            Cached_Nodes = new Dictionary<long, Node>();
 
             _index_Pointer = Math.Max(8, indexStream.Length);
             _data_Pointer = Data_Stream.Length;
@@ -75,6 +76,10 @@ namespace File_System_ES.Append
                 // add free page to
                 foreach (var address in Freed_Empty_Slots)
                     Empty_Slots.Enqueue(address);
+
+                Cached_Nodes.Clear();
+                foreach (var node in Pending_Nodes)
+                    Cached_Nodes[node.Address] = node;
 
                 Pending_Nodes.Clear();
                 Freed_Empty_Slots.Clear();
@@ -182,13 +187,11 @@ namespace File_System_ES.Append
             var newNode = node.Create_New_One_Like_This();
             newNode.Insert_Key(key, address);
             
-       
-
             Node newRoot = null;
             if (newNode.Needs_To_Be_Splitted())
             {
                 var split = newNode.Split();
-                // TODO trova il giusto padre per children
+                // TODO? trova il giusto padre per children
 
                 if (children != null)
                     foreach (var child in children)
@@ -212,13 +215,8 @@ namespace File_System_ES.Append
                 }
                 else
                 {
-                    //node_Right.Parent = node_Left.Parent;
-                    //for (int i = 0; i < node_Left.Parent.Key_Num + 1; i++)
-                    //    if (node_Left.Parent.Pointers[i] == previous_Address)
-                    //        node_Left.Parent.Pointers[i] = node_Left.Address;
                     var newParent = Insert_in_node(split.Node_Left.Parent, split.Mid_Key,
                         split.Node_Right.Address, new[] { split.Node_Left, split.Node_Right });
-                    //node_Left.Parent = node_Right.Parent = newParent;
                     newRoot = newParent;
                 }
             }
@@ -229,13 +227,8 @@ namespace File_System_ES.Append
                         child.Parent = newNode;
 
                 Write_Node(newNode);
-                //Update_Node(node);
                 newRoot = Clone_Anchestors_Of(newNode);
             }
-
-            //if (children != null)
-            //    foreach (var child in children)
-            //        child.Parent = newNode;
 
             return newRoot;
         }

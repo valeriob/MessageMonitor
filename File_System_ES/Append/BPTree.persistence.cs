@@ -64,6 +64,7 @@ namespace File_System_ES.Append
             //if (Cached_Nodes.ContainsKey(address))
             //{
             //    var cached = Cached_Nodes[address];
+            //    return cached;
             //}
 
             Index_Stream.Seek(address, SeekOrigin.Begin);

@@ -33,14 +33,14 @@ namespace File_System_ES.Benchmarks
             batch = batch.GetValueOrDefault(1);
 
             string result;
-            for (int i = 0; i < number_Of_Inserts; i += batch.Value)
+            for (int i = 0; i <= number_Of_Inserts; i += batch.Value)
             {
                 for(var j=0; j< batch; j++)
                 {
                     tree.Put(i, "text about " + i);
 
-                    for (int k = i; k >= 0; k--) 
-                        result = tree.Get(k);
+                    //for (int k = i; k >= 0; k--) 
+                    //    result = tree.Get(k);
                     
                     //tree.Flush();
                     //result = tree.Get(i);
@@ -51,10 +51,10 @@ namespace File_System_ES.Benchmarks
                 //tree.Commit();
             }
 
-            for (int i = number_Of_Inserts; i >= 0; i--)
-            {
-               result = tree.Get(i);
-            }
+            //for (int i = number_Of_Inserts; i >= 0; i--)
+            //{
+            //   result = tree.Get(i);
+            //}
         }
     }
 
