@@ -31,7 +31,7 @@ namespace File_System_ES.Append
             Index_Stream = indexStream;
             Data_Stream = dataStream;
 
-            Empty_Slots = new Queue<long>();
+            Empty_Slots = new List<Block>();
             Reserved_Empty_Slots = new List<long>();
             Freed_Empty_Slots = new List<long>();
             Pending_Nodes = new List<Node>();
@@ -50,11 +50,18 @@ namespace File_System_ES.Append
             try
             {
                 long baseAddress = Index_Pointer();
+                int buffer_Size = Pending_Nodes.Count * Block_Size;
+
+                var block = Look_For_Available_Block(buffer_Size);
+                if (block != null)
+                    baseAddress = block.Base_Address;
+                
+
                 long nextPointer = baseAddress;
                 Update_Addresses_From(Pending_Nodes, UncommittedRoot, ref nextPointer);
 
                 var toUpdate = Pending_Nodes.OrderBy(n=> n.Address).ToArray();
-                var buffer = new byte[toUpdate.Length * Block_Size];
+                var buffer = new byte[buffer_Size];
                 for (int i = 0; i < toUpdate.Length; i++)
                     toUpdate[i].To_Bytes(buffer, i * Block_Size);
                 
@@ -65,7 +72,15 @@ namespace File_System_ES.Append
 
                 Index_Stream.Seek(0, SeekOrigin.Begin);
                 Index_Stream.Write(BitConverter.GetBytes(UncommittedRoot.Address), 0, 8);
-                _committed_Index_Pointer = _index_Pointer = nextPointer;
+              
+                if (block != null)
+                {
+                    block.Reserve_Size(buffer_Size);
+                    if (block.IsEmpty())
+                        Empty_Slots.Remove(block);
+                }
+                else
+                    _committed_Index_Pointer = _index_Pointer = nextPointer;
 
 
                 Root = UncommittedRoot;
@@ -75,7 +90,8 @@ namespace File_System_ES.Append
 
                 // add free page to
                 foreach (var address in Freed_Empty_Slots)
-                    Empty_Slots.Enqueue(address);
+                    //Empty_Slots.Enqueue(address);
+                    Add_Block_Address_To_Available_Space(address);
 
                 Cached_Nodes.Clear();
                 foreach (var node in Pending_Nodes)
@@ -95,8 +111,8 @@ namespace File_System_ES.Append
 
         public void Rollback()
         {
-            foreach (var address in Reserved_Empty_Slots)
-                Empty_Slots.Enqueue(address);
+            //foreach (var address in Reserved_Empty_Slots)
+            //    Empty_Slots.Enqueue(address);
 
             UncommittedRoot = null;
             Index_Stream.SetLength(_committed_Index_Pointer);//poor support? write it after root node address maybe?
@@ -126,6 +142,7 @@ namespace File_System_ES.Append
             var root = Node.Create_New(Size, true);
             Write_Node(root);
             UncommittedRoot = root;
+            Commit();
         }
 
    

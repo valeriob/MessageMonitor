@@ -24,7 +24,7 @@ namespace File_System_ES.Benchmarks
 
             var appendBpTree = new Append.BPlusTree(indexStream, dataStream, 3);
             tree = new String_BPlusTree(appendBpTree);
-            tree.Commit();
+            //tree.Commit();
         }
 
 
@@ -39,7 +39,7 @@ namespace File_System_ES.Benchmarks
                 {
                     tree.Put(i, "text about " + i);
 
-                    //for (int k = i; k >= 0; k--) 
+                    //for (int k = i; k >= 0; k--)
                     //    result = tree.Get(k);
                     
                     //tree.Flush();

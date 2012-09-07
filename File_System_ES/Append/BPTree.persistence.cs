@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
@@ -31,33 +32,36 @@ namespace File_System_ES.Append
 
         protected void Write_Node(Node node)
         {
+            //Debug.Assert(node.Address != 0);
+
             Free_Address(node.Address);
-            if (Should_Reuse_Old_Addresses())
-            {
-                var address = Empty_Slots.Dequeue();
-                Reserved_Empty_Slots.Add(address);
-                Write_Node(node, address);
-            }
-            else
-            {
-                var address = Index_Pointer();
-                Write_Node(node, address);
-                _index_Pointer += Node.Size_In_Bytes(Size);
-            }
-        }
-
-        protected void Write_Node(Node node, long address)
-        {
-            //node.Address = address;
-
             Pending_Nodes.Add(node);
-
-
-            if (_writeMemory_Count.ContainsKey(address))
-                _writeMemory_Count[address] += 1;
-            else
-                _writeMemory_Count[address] = 1;
+            //if (Should_Reuse_Old_Addresses())
+            //{
+            //    var address = Empty_Slots.Dequeue();
+            //    Reserved_Empty_Slots.Add(address);
+            //    Write_Node(node, address);
+            //}
+            //else
+            //{
+            //    var address = Index_Pointer();
+            //    Write_Node(node, address);
+            //    _index_Pointer += Node.Size_In_Bytes(Size);
+            //}
         }
+
+        //protected void Write_Node(Node node, long address)
+        //{
+        //    //node.Address = address;
+
+        //    Pending_Nodes.Add(node);
+
+
+        //    if (_writeMemory_Count.ContainsKey(address))
+        //        _writeMemory_Count[address] += 1;
+        //    else
+        //        _writeMemory_Count[address] = 1;
+        //}
 
         protected Node Read_Node(Node parent, long address)
         {
