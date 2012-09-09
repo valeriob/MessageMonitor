@@ -28,7 +28,7 @@ namespace File_System_ES.Benchmarks
 
             var dataStream = new FileStream(dataFile, FileMode.OpenOrCreate);
 
-            var appendBpTree = new Append.BPlusTree(indexStream, dataStream, 11);
+            var appendBpTree = new Append.BPlusTree(indexStream, dataStream, 3);
             tree = new String_BPlusTree(appendBpTree);
         }
 
@@ -64,10 +64,10 @@ namespace File_System_ES.Benchmarks
                 for (var j = i; j < i + batch; j++)
                 {
                     tree.Put(j, "text about " + j);
-                    //for (int k = i; k >= 0; k--)
-                    //    result = tree.Get(k);
+                    for (int k = i; k >= 0; k--)
+                        result = tree.Get(k);
 
-                    // result = tree.Get(i);
+                     result = tree.Get(j);
                 }
                 tree.Commit();
             }

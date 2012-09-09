@@ -254,7 +254,7 @@ namespace File_System_ES.Append
 
             Add_Block_Address_To_Available_Space(Freed_Empty_Slots);
 
-
+            Nodes.Clear();
             Nodes.AddRange(Pending_Nodes);
             Pending_Nodes.Clear();
             Freed_Empty_Slots.Clear();
