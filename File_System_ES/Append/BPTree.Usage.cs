@@ -80,20 +80,31 @@ namespace File_System_ES.Append
         {
             var base_Address = block.Base_Address();
 
+            //if (block.IsEmpty())
+            //{
+            //    _base_Address_Index.Remove(base_Address);
+            //    _end_Address_Index.Remove(base_Address);
+
+            //    Empty_Slots[block.Index] = null;//.Invalidate();
+            //    _base_Address_Index.Remove(base_Address);
+            //}
+            //else
+            //{
+            //    _base_Address_Index.Remove(base_Address);
+            //    block.Reserve_Size(size);
+            //    _base_Address_Index[base_Address] = block;
+            //}
+
+            _base_Address_Index.Remove(base_Address);
+            block.Reserve_Size(size);
+
             if (block.IsEmpty())
             {
-                _base_Address_Index.Remove(base_Address);
-                _end_Address_Index.Remove(base_Address);
-
-                Empty_Slots[block.Index] = null;//.Invalidate();
-                _base_Address_Index.Remove(base_Address);
+                _end_Address_Index.Remove(block.End_Address());
+                Empty_Slots[block.Index] = null;
             }
             else
-            {
-                _base_Address_Index.Remove(base_Address);
-                block.Reserve_Size(size);
-                _base_Address_Index[base_Address] = block;
-            }
+                _base_Address_Index[block.Base_Address()] = block;
         }
 
 
@@ -111,13 +122,13 @@ namespace File_System_ES.Append
                 if (_end_Address_Index.ContainsKey(address))
                 {
                     Block before = _end_Address_Index[address];
-                    long before_End_Address = before.End_Address();
+                    //long before_End_Address = before.End_Address();
 
                     before.Append_Block(Block_Size);
                     if (_base_Address_Index.ContainsKey(address + Block_Size))
                     {
                         Block after = _base_Address_Index[address + Block_Size];
-                        before.Append_Block(Block_Size + after.Lenght);
+                        before.Append_Block(after.Lenght);
 
                         _base_Address_Index.Remove(address + Block_Size);
                       
@@ -126,23 +137,25 @@ namespace File_System_ES.Append
                         Empty_Slots[idx] = null;
                     }
 
-                    before.Append_Block(Block_Size);
+                    //before.Append_Block(Block_Size);
 
-                    _end_Address_Index.Remove(before_End_Address);
-                    _end_Address_Index[before_End_Address] = before;
+                    _end_Address_Index.Remove(address);
+                    _end_Address_Index[before.End_Address()] = before;
                     a = true;
+                    continue;
                 }
 
-                if (_base_Address_Index.ContainsKey(address - Block_Size))
+                if (_base_Address_Index.ContainsKey(address + Block_Size))
                 {
-                    Block before = _base_Address_Index[address - Block_Size];
-                    if (before.Has_Space_Before(Block_Size))
+                    Block after = _base_Address_Index[address + Block_Size];
+                    //if (after.Has_Space_Before(Block_Size))
                     {
-                        _base_Address_Index.Remove(before.Base_Address());
-                        before.Prepend_Block(Block_Size);
-                        _base_Address_Index[before.Base_Address()] = before;
+                        _base_Address_Index.Remove(after.Base_Address());
+                        after.Prepend_Block(Block_Size);
+                        _base_Address_Index[after.Base_Address()] = after;
                     }
                     b = true;
+                    continue;
                 }
 
                 Insert_Block(address, Block_Size);
@@ -153,11 +166,18 @@ namespace File_System_ES.Append
         {
             Array.Sort(Empty_Slots);
 
-            var foundIndex = Array.BinarySearch(Empty_Slots, new Block(0, size));
+            int foundIndex = Array.BinarySearch(Empty_Slots, new Block(0, size));
             if (foundIndex > 0)
             {
                 var result = Empty_Slots[foundIndex];
                 result.Index = foundIndex;
+                return result;
+            }
+            int complement = ~foundIndex;
+            if (complement != Empty_Slots.Length)
+            {
+                var result = Empty_Slots[complement];
+                result.Index = complement;
                 return result;
             }
 
@@ -166,7 +186,7 @@ namespace File_System_ES.Append
 
         protected void Insert_Block(long address, int lenght)
         {
-            Array.Sort(Empty_Slots);
+           // Array.Sort(Empty_Slots);
 
             var emptyIndex = Array.BinarySearch(Empty_Slots, null );
             var old_lenght = Empty_Slots.Length;
@@ -175,35 +195,43 @@ namespace File_System_ES.Append
             if (emptyIndex < 0)
             {
                 Array.Resize(ref Empty_Slots, old_lenght + 8);
-                //for (int i = old_lenght; i < Empty_Slots.Length; i++)
-                //    Empty_Slots[i] = new Block();
                 block = Empty_Slots[old_lenght] = new Block(address, lenght);
             }
             else
                 block = Empty_Slots[emptyIndex] = new Block(address, lenght);
 
-            //block.Restore(address, lenght);
             _base_Address_Index[address] = block;
             _end_Address_Index[block.End_Address()] = block;
         }
         
 
 
-        protected void Update_Addresses_From(List<Node> nodes, Node root, ref long base_Address)
+        protected void Update_Addresses_From(Node[] nodes, Node root, ref long base_Address)
         {
             root.Address = base_Address;
             base_Address += Block_Size;
             if (root.IsLeaf)
                 return;
 
-            foreach (var child in nodes.Where(n => n.Parent == root))
+            for (int i = 0; i < nodes.Length; i++)
             {
+                if (nodes[i].Parent != root)
+                    continue;
+
                 var new_Child_Address = base_Address;
-                var old_Child_Address = child.Address;
+                var old_Child_Address = nodes[i].Address;
                 root.Update_Child_Address(old_Child_Address, new_Child_Address);
 
-                Update_Addresses_From(nodes, child, ref base_Address);
+                Update_Addresses_From(nodes, nodes[i], ref base_Address);
             }
+            //foreach (var child in nodes.Where(n => n.Parent == root))
+            //{
+            //    var new_Child_Address = base_Address;
+            //    var old_Child_Address = child.Address;
+            //    root.Update_Child_Address(old_Child_Address, new_Child_Address);
+
+            //    Update_Addresses_From(nodes, child, ref base_Address);
+            //}
         }
 
     }
@@ -307,7 +335,7 @@ namespace File_System_ES.Append
 
         public int CompareTo(Block other)
         {
-            return other== null? int.MaxValue : other.Lenght - Lenght;
+            return other == null ? int.MaxValue : Lenght - other.Lenght;
         }
 
     }

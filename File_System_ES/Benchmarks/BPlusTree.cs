@@ -19,8 +19,10 @@ namespace File_System_ES.Benchmarks
             if (File.Exists(dataFile))
                 File.Delete(dataFile);
 
+            //var indexStream = new MemoryStream();
+            //var dataStream = new MemoryStream();
             var indexStream = new MyFileStream(indexFile, FileMode.OpenOrCreate);
-            var dataStream = new FileStream(dataFile, FileMode.OpenOrCreate  );
+            var dataStream = new FileStream(dataFile, FileMode.OpenOrCreate);
 
             var appendBpTree = new Append.BPlusTree(indexStream, dataStream, 11);
             tree = new String_BPlusTree(appendBpTree);
@@ -33,7 +35,7 @@ namespace File_System_ES.Benchmarks
 
             string result;
 
-
+    
             for (int i = 0; i <= number_Of_Inserts; i += batch.Value)
             {
                 for(var j=0; j< batch; j++)

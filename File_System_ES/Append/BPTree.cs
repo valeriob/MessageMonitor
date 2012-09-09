@@ -53,13 +53,14 @@ namespace File_System_ES.Append
             long baseAddress = Index_Pointer();
             int buffer_Size = Pending_Nodes.Count * Block_Size;
 
-            //var block = Look_For_Available_Block(buffer_Size);
-            //if (block != null)
-            //    baseAddress = block.Base_Address();
+            // look for block
+            var block = Look_For_Available_Block(buffer_Size);
+            if (block != null)
+                baseAddress = block.Base_Address();
 
   
             long nextPointer = baseAddress;
-            Update_Addresses_From(Pending_Nodes, UncommittedRoot, ref nextPointer);
+            Update_Addresses_From(Pending_Nodes.ToArray(), UncommittedRoot, ref nextPointer);
 
             var toUpdate = Pending_Nodes.OrderBy(n => n.Address).ToArray();
             var buffer = new byte[buffer_Size];
@@ -74,10 +75,10 @@ namespace File_System_ES.Append
             Index_Stream.Seek(0, SeekOrigin.Begin);
             Index_Stream.Write(BitConverter.GetBytes(UncommittedRoot.Address), 0, 8);
 
-
-            //if (block != null)
-            //    Block_Usage_Finished(block, buffer_Size);
-            //else
+            // "use block
+            if (block != null)
+                Block_Usage_Finished(block, buffer_Size);
+            else
             _committed_Index_Pointer = _index_Pointer = nextPointer;
 
 
@@ -86,8 +87,8 @@ namespace File_System_ES.Append
 
             //Index_Stream.Flush();
 
-            // add free page to
-            //Add_Block_Address_To_Available_Space(Freed_Empty_Slots);
+          //   add free page to
+            Add_Block_Address_To_Available_Space(Freed_Empty_Slots);
 
             Cached_Nodes.Clear();
             foreach (var node in Pending_Nodes)
@@ -146,15 +147,8 @@ namespace File_System_ES.Append
 
         public void Put(int key, byte[] value)
         {
-            Node leaf = null;
-            try
-            {
-                leaf = Find_Leaf_Node(key);
-            }
-            catch (Exception ex)
-            { 
-            
-            }
+            Node leaf = Find_Leaf_Node(key); 
+
             var data_Address = Data_Pointer();
             Write_Data(value, key, 0); // todo versionFromLeaf +1;
 
@@ -266,7 +260,7 @@ namespace File_System_ES.Append
 
         protected Node Find_Leaf_Node(int key)
         {
-            Node node = Root;// Read_Node(null, 0);
+            Node node = Root;
             if (UncommittedRoot != null)
                 node = UncommittedRoot;
             return Find_Leaf_Node(key, node);
