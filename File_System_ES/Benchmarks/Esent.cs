@@ -15,15 +15,13 @@ namespace File_System_ES.Benchmarks
             
             dictionary.Clear();
         }
-        public override void Run(int count, int? batch)
+        public override void Run(int count, int batch)
         {
-            batch = batch.GetValueOrDefault(1);
-
-            for (int i = 0; i < count; i += batch.Value)
+            for (int i = 0; i < count; i += batch)
             {
-                for (var j = 0; j < batch; j++)
+                for (var j = i; j < i + batch; j++)
                 {
-                    dictionary[i] = "test" + i;
+                    dictionary[j] = "test" + j;
                 }
                 dictionary.Flush();
             }

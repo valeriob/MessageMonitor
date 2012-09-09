@@ -14,6 +14,7 @@ namespace File_System_ES
 
         void Flush();
         void Commit();
+        void RollBack();
     }
     
  

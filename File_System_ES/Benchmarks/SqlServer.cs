@@ -21,26 +21,24 @@ namespace File_System_ES.Benchmarks
                 cmd.ExecuteNonQuery();
             }
         }
-        public override void Run(int count, int? batch)
+        public override void Run(int count, int batch)
         {
-            batch = batch.GetValueOrDefault(1);
-
             for (int i = 0; i < count; i++)
             {
                 var trans = con.BeginTransaction();
-                for (int j = 0; j < batch; j+= batch.Value)
+                for (int j = i; j < batch + i; j+= batch)
                 {
                     using (var cmd = con.CreateCommand())
                     {
                         cmd.Transaction = trans;
                         cmd.CommandText = @"INSERT INTO dbo.TABLE_Insert VALUES(@id, @value)";
                         var par = cmd.CreateParameter();
-                        par.Value = i;
+                        par.Value = j;
                         par.ParameterName = "id";
                         cmd.Parameters.Add(par);
 
                         par = cmd.CreateParameter();
-                        par.Value = "value " + i + " / "+j;
+                        par.Value = "value " + j;
                         par.ParameterName = "value";
                         cmd.Parameters.Add(par);
 

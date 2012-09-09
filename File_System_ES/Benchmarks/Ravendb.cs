@@ -15,19 +15,15 @@ namespace File_System_ES.Benchmarks
             _documentStore.Initialize();
         }
 
-        public override void Run(int count, int? batch)
+        public override void Run(int count, int batch)
         {
-
-            batch = batch.GetValueOrDefault(1);
-
-
-            for (int i = 0; i < count; i += batch.Value) 
+            for (int i = 0; i < count; i += batch) 
             {
                 using (var session = _documentStore.OpenSession())
                 {
-                    for (int j = 0; j < batch; j++)
+                    for (int j = i; j < i+batch; j++)
                     {
-                        session.Store(new My_Test_Entity { Id= Guid.NewGuid(), Body = "test "+i+" "+j, Timestamp =DateTime.Now });
+                        session.Store(new My_Test_Entity { Id= Guid.NewGuid(), Body = "test "+j, Timestamp =DateTime.Now });
                     }
                     session.SaveChanges();
                 }

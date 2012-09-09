@@ -8,17 +8,18 @@ namespace File_System_ES.Benchmarks
     public abstract class Benchmark
     {
 
-        public abstract void Run(int count, int? batch);
+        public abstract void Run(int count, int batch);
 
-        public static IEnumerable<Result> RunAll(int count, int? batch)
+        public static IEnumerable<Result> RunAll(int count, int? batch = null)
         {
             var benchmarks = new Benchmark[] 
             { 
-               //new Ravendb(),
+              // new Ravendb(),
                new BPlusTree(),
-               //new CSharpTest_BPlusTree(),
-               //new Esent(),
-               //new SqlServer()
+               //new File_Flush_Benchmark(),
+             //  new CSharpTest_BPlusTree(),
+            //  new Esent(),
+            //   new SqlServer()
             };
 
             var results = new List<Result>();
@@ -26,7 +27,7 @@ namespace File_System_ES.Benchmarks
             foreach (var b in benchmarks)
             {
                 var result = new Result {Name= b.GetType().Name, Start = DateTime.Now, Count = count, Batch = batch };
-                b.Run(count, batch);
+                b.Run(count, batch.GetValueOrDefault(1));
                 result.Stop = DateTime.Now;
                 results.Add(result);
             }

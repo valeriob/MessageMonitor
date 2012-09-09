@@ -38,6 +38,11 @@ namespace File_System_ES
         {
             BPlusTree.Commit();
         }
+
+        public void RollBack()
+        {
+            BPlusTree.RollBack();
+        }
     }
     
 }

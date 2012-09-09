@@ -11,7 +11,7 @@ namespace File_System_ES.Append
     public partial class BPlusTree : IBPlusTree
     {
         public Node Root { get; set; }
-        public Node UncommittedRoot { get; set; }
+        Pending_Changes Pending_Changes;
 
         protected Stream Index_Stream { get; set; }
         protected Stream Data_Stream { get; set; }
@@ -33,14 +33,10 @@ namespace File_System_ES.Append
             Index_Stream = indexStream;
             Data_Stream = dataStream;
 
-            Reserved_Empty_Slots = new List<long>();
-            Freed_Empty_Slots = new List<long>();
-            Pending_Nodes = new List<Node>();
             Cached_Nodes = new Dictionary<long, Node>();
 
             _index_Pointer = Math.Max(8, indexStream.Length);
             _data_Pointer = Data_Stream.Length;
-            _committed_Index_Pointer = _index_Pointer;
 
             Init();
         }
@@ -48,123 +44,32 @@ namespace File_System_ES.Append
 
         public int commitsCount;
         public int writes;
+      
 
         public void Commit()
         {
-            commitsCount++;
-            long baseAddress = Index_Pointer();
-            //int buffer_Size = Pending_Nodes.Count * Block_Size;
-
-            //look for block
-            var blocks = Look_For_Available_Blocks(Pending_Nodes.Count * Block_Size);
-            var appending_Block = new Block_Usage(new Block(baseAddress, int.MaxValue), -1);
-
-            blocks = blocks.Concat(new[] { appending_Block }).OrderBy(b => b.Base_Address()).ToList();
-
-            var addressesQueue = new Queue<long>();
-            foreach (var block in blocks)
-                for (int i = 0; i < block.Length && Pending_Nodes.Count > addressesQueue.Count; i += Block_Size)
-                    addressesQueue.Enqueue(block.Base_Address() + i);
-
-            Update_Addresses_From(Pending_Nodes.ToArray(), UncommittedRoot, addressesQueue);
-
-            var nodes = new Queue<Node>(Pending_Nodes.OrderBy(d=> d.Address));
-            foreach (var block in blocks)
-            {
-                if (nodes.Count == 0)
-                    break;
-
-                var toUpdate = new List<Node>();
-                for (int j = 0; j < block.Length && nodes.Count > 0; j += Block_Size)
-                {
-                    toUpdate.Add(nodes.Dequeue());
-                    block.Use(Block_Size);
-                }
-
-                int buffer_Size = toUpdate.Count * Block_Size;
-                var buffer = new byte[buffer_Size];
-                for (int i = 0; i < toUpdate.Count; i++)
-                    toUpdate[i].To_Bytes(buffer, i * Block_Size);
-
-                Index_Stream.Seek(block.Base_Address(), SeekOrigin.Begin);
-                Index_Stream.Write(buffer, 0, buffer.Length);
-                writes++;
-            }
-
-            //if (false)
-            //{
-            //    long nextPointer = baseAddress;
-            //    Update_Addresses_From_Base(Pending_Nodes.ToArray(), UncommittedRoot, ref nextPointer);
-
-            //    var toUpdate = Pending_Nodes.OrderBy(n => n.Address).ToArray();
-            //    var buffer = new byte[buffer_Size];
-            //    for (int i = 0; i < toUpdate.Length; i++)
-            //        toUpdate[i].To_Bytes(buffer, i * Block_Size);
-
-
-            //    Index_Stream.Seek(baseAddress, SeekOrigin.Begin);
-            //    Index_Stream.Write(buffer, 0, buffer.Length);
-            //}
-
             Index_Stream.Seek(0, SeekOrigin.Begin);
-            Index_Stream.Write(BitConverter.GetBytes(UncommittedRoot.Address), 0, 8);
+            Index_Stream.Write(BitConverter.GetBytes(Pending_Changes.Uncommitted_Root.Address), 0, 8);
             writes++;
 
-            // "use block
-            foreach (var block in blocks)
-            {
-                if (block == appending_Block)
-                {
-                    _committed_Index_Pointer = _index_Pointer = block.Base_Address() + block.Used_Length;
-                }
-                else
-                {
-                    Block_Usage_Finished(block);
-                }
-            }
-            //if (blocks != null)
-            //    Block_Usage_Finished(blocks, buffer_Size);
-            //else
-            //_committed_Index_Pointer = _index_Pointer = nextPointer;
-
-
-            Root = UncommittedRoot;
-            UncommittedRoot = null;
-
-            //Index_Stream.Flush();
-
-          //   add free page to
-            Add_Block_Address_To_Available_Space(Freed_Empty_Slots);
-            //foreach (var block in Freed_Empty_Slots)
-            //{
-            //    Index_Stream.Seek(block, SeekOrigin.Begin);
-            //    Index_Stream.Write(BitConverter.GetBytes(-1), 0, 4);
-            //}
+            Root = Pending_Changes.Uncommitted_Root;
 
             Cached_Nodes.Clear();
-            foreach (var node in Pending_Nodes)
+            foreach (var node in Pending_Changes.Last_Cached_Nodes())
                 Cached_Nodes[node.Address] = node;
 
-            Pending_Nodes.Clear();
-            Freed_Empty_Slots.Clear();
-            Reserved_Empty_Slots.Clear();
+            _index_Pointer = Pending_Changes.Get_Index_Pointer();
+            Empty_Slots = Pending_Changes.Get_Empty_Slots();
+            Pending_Changes = null;
 
+            Index_Stream.Flush();
         }
 
-        public void Rollback()
+        public void RollBack()
         {
-            //foreach (var address in Reserved_Empty_Slots)
-            //    Empty_Slots.Enqueue(address);
-
-            UncommittedRoot = null;
-            Index_Stream.SetLength(_committed_Index_Pointer);//poor support? write it after root node address maybe?
-
-            _index_Pointer = _committed_Index_Pointer;
-
-
-            Pending_Nodes.Clear();
-            Freed_Empty_Slots.Clear();
-            Reserved_Empty_Slots.Clear();
+            Index_Stream.SetLength(_index_Pointer);
+            Cached_Nodes.Clear();
+            Pending_Changes = null;
         }
 
         private void Init()
@@ -180,11 +85,10 @@ namespace File_System_ES.Append
             //    return;
             //}
             //catch (Exception) { }
-
+            Pending_Changes = new Pending_Changes(Index_Stream, Block_Size, Empty_Slots);
             var root = Node.Create_New(Size, true);
             Write_Node(root);
-            UncommittedRoot = root;
-            Commit();
+            Pending_Changes.Append_New_Root(root);
         }
 
    
@@ -198,21 +102,36 @@ namespace File_System_ES.Append
 
         public void Put(int key, byte[] value)
         {
-            Node leaf = Find_Leaf_Node(key); 
+            Node leaf = Find_Leaf_Node(key);
 
             var data_Address = Data_Pointer();
-            Write_Data(value, key, 0); // todo versionFromLeaf +1;
+            Write_Data(value, key, 1);
 
+            if (Pending_Changes == null)
+                Pending_Changes = new Pending_Changes(Index_Stream, Block_Size, Empty_Slots);
+
+            Node newRoot = null;
             for(int i=0; i< leaf.Key_Num; i++)
                 if (key == leaf.Keys[i])
                 {
-                    //leaf.Pointers[i] = data_Address;
-                    //Update_Node(leaf);
+                    var newLeaf = leaf.Create_New_One_Like_This();
+                    newLeaf.Versions[i]++;
+                    newLeaf.Pointers[i] = data_Address;
+
+                    Write_Data(value, key, newLeaf.Versions[i]); 
+
+                    newRoot = Clone_Anchestors_Of(newLeaf);
+
+                    Pending_Changes.Append_New_Root(newRoot);
                     return;
                 }
 
-            UncommittedRoot = Insert_in_node(leaf, key, data_Address);
-           Commit();
+
+            Write_Data(value, key, 1); 
+
+            newRoot = Insert_in_node(leaf, key, data_Address);
+
+            Pending_Changes.Append_New_Root(newRoot);
         }
 
         public bool Delete(int key)
@@ -224,7 +143,7 @@ namespace File_System_ES.Append
                     Delete_Key_In_Node(leaf, key);
                     long previous_Address = leaf.Address;
                     Write_Node(leaf);
-                    UncommittedRoot = Clone_Anchestors_Of(leaf);
+                    //UncommittedRoot = Clone_Anchestors_Of(leaf);
                     return true;
                 }
             return false;
@@ -257,11 +176,15 @@ namespace File_System_ES.Append
             if (newNode.Needs_To_Be_Splitted())
             {
                 var split = newNode.Split();
-                // TODO !!!! trova il giusto padre per children !!!
 
                 if (children != null)
                     foreach (var child in children)
-                        child.Parent = split.Node_Right;
+                    {
+                        if(child.Keys[child.Key_Num - 1] < split.Mid_Key)
+                            child.Parent = split.Node_Left;
+                        else
+                            child.Parent = split.Node_Right;
+                    }
 
                 Write_Node(split.Node_Right);
                 Write_Node(split.Node_Left);
@@ -312,8 +235,9 @@ namespace File_System_ES.Append
         protected Node Find_Leaf_Node(int key)
         {
             Node node = Root;
-            if (UncommittedRoot != null)
-                node = UncommittedRoot;
+            if(Pending_Changes != null)
+                node = Pending_Changes.Uncommitted_Root;
+
             return Find_Leaf_Node(key, node);
         }
 

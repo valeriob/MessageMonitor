@@ -61,6 +61,8 @@ namespace File_System_ES.Append
                     Pointers[i] = newAddress;
                     return;
                 }
+
+            throw new Exception("this should not happen");
         }
 
         public Split Split()
@@ -79,7 +81,7 @@ namespace File_System_ES.Append
                 node_Right.Pointers[i] = node_Left.Pointers[i + (size / 2 + 1)];
             }
 
-            node_Right.Pointers[node_Right.Key_Num] = node_Left.Pointers[size]; // double linked list
+            node_Right.Pointers[node_Right.Key_Num] = node_Left.Pointers[size]; 
             node_Left.Key_Num = size / 2;
 
             if (node_Left.IsLeaf)
@@ -87,7 +89,7 @@ namespace File_System_ES.Append
                 node_Left.Key_Num++;
                 node_Right.Pointers[0] = node_Left.Pointers[0];
 
-                node_Left.Pointers[0] = node_Right.Address;  // double linked list
+                node_Left.Pointers[0] = node_Right.Address;  //TODO double linked list
                 mid_Key = node_Left.Keys[size / 2 + 1];
             }
 

@@ -68,15 +68,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Append\BPTree.Pending.cs" />
     <Compile Include="Append\BPTree.Usage.cs" />
     <Compile Include="Basic_Heap.cs" />
     <Compile Include="Benchmarks\Benchmark.cs" />
     <Compile Include="Benchmarks\BPlusTree.cs" />
     <Compile Include="Benchmarks\CSharpTest_BPlusTree.cs" />
     <Compile Include="Benchmarks\Esent.cs" />
+    <Compile Include="Benchmarks\File_Flush_Benchmark.cs" />
     <Compile Include="Benchmarks\Ravendb.cs" />
     <Compile Include="Benchmarks\SqlServer.cs" />
-    <Compile Include="File_Flush_Test.cs" />
     <Compile Include="IBPTree.cs" />
     <Compile Include="Append\BPTree.cs" />
     <Compile Include="Append\BPTree.persistence.cs" />

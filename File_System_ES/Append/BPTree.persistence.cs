@@ -10,20 +10,20 @@ namespace File_System_ES.Append
 {
     public partial class BPlusTree
     {
-        public List<Node> Pending_Nodes { get; set; }
+        //public List<Node> Pending_Nodes { get; set; }
 
         private long _index_Pointer;
-        private long Index_Pointer()
-        {
-            return _index_Pointer;
-        }
+        //private long Index_Pointer()
+        //{
+        //    return _index_Pointer;
+        //}
 
         private long _data_Pointer;
         private long Data_Pointer()
         {
             return _data_Pointer;
         }
-        private long _committed_Index_Pointer;
+       // private long _committed_Index_Pointer;
 
 
 
@@ -32,34 +32,9 @@ namespace File_System_ES.Append
 
         protected void Write_Node(Node node)
         {
-            Free_Address(node.Address);
-            Pending_Nodes.Add(node);
-            //if (Should_Reuse_Old_Addresses())
-            //{
-            //    var address = Empty_Slots.Dequeue();
-            //    Reserved_Empty_Slots.Add(address);
-            //    Write_Node(node, address);
-            //}
-            //else
-            //{
-            //    var address = Index_Pointer();
-            //    Write_Node(node, address);
-            //    _index_Pointer += Node.Size_In_Bytes(Size);
-            //}
+            Pending_Changes.Free_Address(node.Address);
+            Pending_Changes.Append_Node(node);
         }
-
-        //protected void Write_Node(Node node, long address)
-        //{
-        //    //node.Address = address;
-
-        //    Pending_Nodes.Add(node);
-
-
-        //    if (_writeMemory_Count.ContainsKey(address))
-        //        _writeMemory_Count[address] += 1;
-        //    else
-        //        _writeMemory_Count[address] = 1;
-        //}
         
         protected Node Read_Node(Node parent, long address)
         {

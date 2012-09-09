@@ -60,11 +60,11 @@ namespace File_System_ES.UpdateInPlace
             }
             catch (Exception ex)
             {
-                Rollback();
+                RollBack();
             }
         }
 
-        public void Rollback()
+        public void RollBack()
         {
             foreach (var address in Reserved_Empty_Slots)
                 Empty_Slots.Enqueue(address);
