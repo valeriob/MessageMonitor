@@ -29,7 +29,7 @@ namespace File_System_ES.Append
             _index_Pointer = Math.Max(8, index_Stream.Length);
         }
 
-
+        //Tree.AVLTree<int, Block> Empty_Slots;
         Block[] Empty_Slots;
         List<long> Freed_Empty_Slots;
         List<Node> Pending_Nodes;
@@ -119,7 +119,8 @@ namespace File_System_ES.Append
                 else  // scamuzzolandia !
                 {
                     int index = Empty_Slots.Length - 1;
-                    while (index > 0 && size > 0)
+                    int max = 10;
+                    while (index > 0 && size > 0 && max > 0)
                     {
                         var result = Empty_Slots[index];
                         if (result == null)
@@ -127,6 +128,7 @@ namespace File_System_ES.Append
                         yield return new Block_Usage(result, index);
                         size -= result.Length;
                         index--;
+                        max--;
                     }
                 }
             }
@@ -203,9 +205,12 @@ namespace File_System_ES.Append
             Pending_Nodes.Add(node);
         }
 
+        public static List<int> _statistics_blocks_found = new List<int>();
         public void Append_New_Root(Node root)
         {
-            var blocks = Look_For_Available_Blocks(Pending_Nodes.Count * Block_Size);
+            var blocks = Look_For_Available_Blocks(Pending_Nodes.Count * Block_Size).ToList();
+            _statistics_blocks_found.Add(blocks.Count);
+
             var block_At_End_Of_File = new Block_Usage(new Block(_index_Pointer, int.MaxValue), -1);
 
             blocks = blocks.Concat(new[] { block_At_End_Of_File }).OrderBy(b => b.Base_Address()).ToList();

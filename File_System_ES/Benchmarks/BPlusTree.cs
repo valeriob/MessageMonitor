@@ -37,6 +37,16 @@ namespace File_System_ES.Benchmarks
         {
             string result;
 
+            /// Random
+            //int count = number_Of_Inserts;
+            //var random = new Random();
+            //while (count > 0)
+            //{
+            //    int value = random.Next();
+            //    tree.Put(value, "text about " + value);
+            //    tree.Commit();
+            //    count--;
+            //}
             /// Reverse
             //for (int i = number_Of_Inserts; i >= 0; i -= batch)
             //{
@@ -51,20 +61,21 @@ namespace File_System_ES.Benchmarks
 
             for (int i = 0; i <= number_Of_Inserts; i += batch)
             {
-                for(var j=i; j< i+batch; j++)
+                for (var j = i; j < i + batch; j++)
                 {
                     tree.Put(j, "text about " + j);
                     //for (int k = i; k >= 0; k--)
                     //    result = tree.Get(k);
-                    
-                   // result = tree.Get(i);
+
+                    // result = tree.Get(i);
                 }
                 tree.Commit();
             }
 
             var inner = tree.BPlusTree as Append.BPlusTree;
-            //int wasted = inner.Empty_Slots.Where(s => s != null).Sum(s => s.Length);
-            //var stats = inner.Empty_Slots.Where(s => s != null).GroupBy(g => g.Length).ToList();
+            var rgps = File_System_ES.Append.Pending_Changes._statistics_blocks_found.GroupBy(g => g).ToList();
+            int wasted = inner.Empty_Slots.Where(s => s != null).Sum(s => s.Length);
+            var stats = inner.Empty_Slots.Where(s => s != null).GroupBy(g => g.Length).ToList();
         }
     }
 
