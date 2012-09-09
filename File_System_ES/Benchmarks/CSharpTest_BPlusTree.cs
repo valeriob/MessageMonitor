@@ -11,16 +11,16 @@ namespace File_System_ES.Benchmarks
     {
         public override void Run(int count, int? batch)
         {
-            string fileName = "stream.dat";
+            string fileName = "CSharpTest_BPlusTree.dat";
 
             if (File.Exists(fileName))
                 File.Delete(fileName);
 
-            var file = File.Open("index.dat", FileMode.OpenOrCreate);
+            var file = File.Open(fileName, FileMode.OpenOrCreate);
 
             var opts = new CSharpTest.Net.Collections.BPlusTree<int, string>.OptionsV2(PrimitiveSerializer.Int32, PrimitiveSerializer.String)
             {
-                BTreeOrder = 4,
+                BTreeOrder = 11,
                 FileName = "file",
                 CreateFile = CSharpTest.Net.Collections.CreatePolicy.IfNeeded,
                 StorageType = CSharpTest.Net.Collections.StorageType.Disk,
@@ -30,7 +30,7 @@ namespace File_System_ES.Benchmarks
             for (int i = 0; i < count; i++)
             {
                 index.Add(i, "text about " + i);
-                index.Commit();
+              //  index.Commit();
             }
 
         }

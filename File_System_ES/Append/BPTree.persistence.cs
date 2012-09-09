@@ -32,8 +32,6 @@ namespace File_System_ES.Append
 
         protected void Write_Node(Node node)
         {
-            //Debug.Assert(node.Address != 0);
-
             Free_Address(node.Address);
             Pending_Nodes.Add(node);
             //if (Should_Reuse_Old_Addresses())

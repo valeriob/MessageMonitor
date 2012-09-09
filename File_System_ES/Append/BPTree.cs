@@ -46,40 +46,86 @@ namespace File_System_ES.Append
         }
 
 
-        int commitsCount;
+        public int commitsCount;
+        public int writes;
+
         public void Commit()
         {
             commitsCount++;
             long baseAddress = Index_Pointer();
-            int buffer_Size = Pending_Nodes.Count * Block_Size;
+            //int buffer_Size = Pending_Nodes.Count * Block_Size;
 
-            // look for block
-            var block = Look_For_Available_Block(buffer_Size);
-            if (block != null)
-                baseAddress = block.Base_Address();
+            //look for block
+            var blocks = Look_For_Available_Blocks(Pending_Nodes.Count * Block_Size);
+            var appending_Block = new Block_Usage(new Block(baseAddress, int.MaxValue), -1);
 
-  
-            long nextPointer = baseAddress;
-            Update_Addresses_From(Pending_Nodes.ToArray(), UncommittedRoot, ref nextPointer);
+            blocks = blocks.Concat(new[] { appending_Block }).OrderBy(b => b.Base_Address()).ToList();
 
-            var toUpdate = Pending_Nodes.OrderBy(n => n.Address).ToArray();
-            var buffer = new byte[buffer_Size];
-            for (int i = 0; i < toUpdate.Length; i++)
-                toUpdate[i].To_Bytes(buffer, i * Block_Size);
+            var addressesQueue = new Queue<long>();
+            foreach (var block in blocks)
+                for (int i = 0; i < block.Length && Pending_Nodes.Count > addressesQueue.Count; i += Block_Size)
+                    addressesQueue.Enqueue(block.Base_Address() + i);
+
+            Update_Addresses_From(Pending_Nodes.ToArray(), UncommittedRoot, addressesQueue);
+
+            var nodes = new Queue<Node>(Pending_Nodes.OrderBy(d=> d.Address));
+            foreach (var block in blocks)
+            {
+                if (nodes.Count == 0)
+                    break;
+
+                var toUpdate = new List<Node>();
+                for (int j = 0; j < block.Length && nodes.Count > 0; j += Block_Size)
+                {
+                    toUpdate.Add(nodes.Dequeue());
+                    block.Use(Block_Size);
+                }
+
+                int buffer_Size = toUpdate.Count * Block_Size;
+                var buffer = new byte[buffer_Size];
+                for (int i = 0; i < toUpdate.Count; i++)
+                    toUpdate[i].To_Bytes(buffer, i * Block_Size);
+
+                Index_Stream.Seek(block.Base_Address(), SeekOrigin.Begin);
+                Index_Stream.Write(buffer, 0, buffer.Length);
+                writes++;
+            }
+
+            //if (false)
+            //{
+            //    long nextPointer = baseAddress;
+            //    Update_Addresses_From_Base(Pending_Nodes.ToArray(), UncommittedRoot, ref nextPointer);
+
+            //    var toUpdate = Pending_Nodes.OrderBy(n => n.Address).ToArray();
+            //    var buffer = new byte[buffer_Size];
+            //    for (int i = 0; i < toUpdate.Length; i++)
+            //        toUpdate[i].To_Bytes(buffer, i * Block_Size);
 
 
-            Index_Stream.Seek(baseAddress, SeekOrigin.Begin);
-            Index_Stream.Write(buffer, 0, buffer.Length);
-
+            //    Index_Stream.Seek(baseAddress, SeekOrigin.Begin);
+            //    Index_Stream.Write(buffer, 0, buffer.Length);
+            //}
 
             Index_Stream.Seek(0, SeekOrigin.Begin);
             Index_Stream.Write(BitConverter.GetBytes(UncommittedRoot.Address), 0, 8);
+            writes++;
 
             // "use block
-            if (block != null)
-                Block_Usage_Finished(block, buffer_Size);
-            else
-            _committed_Index_Pointer = _index_Pointer = nextPointer;
+            foreach (var block in blocks)
+            {
+                if (block == appending_Block)
+                {
+                    _committed_Index_Pointer = _index_Pointer = block.Base_Address() + block.Used_Length;
+                }
+                else
+                {
+                    Block_Usage_Finished(block);
+                }
+            }
+            //if (blocks != null)
+            //    Block_Usage_Finished(blocks, buffer_Size);
+            //else
+            //_committed_Index_Pointer = _index_Pointer = nextPointer;
 
 
             Root = UncommittedRoot;
@@ -89,6 +135,11 @@ namespace File_System_ES.Append
 
           //   add free page to
             Add_Block_Address_To_Available_Space(Freed_Empty_Slots);
+            //foreach (var block in Freed_Empty_Slots)
+            //{
+            //    Index_Stream.Seek(block, SeekOrigin.Begin);
+            //    Index_Stream.Write(BitConverter.GetBytes(-1), 0, 4);
+            //}
 
             Cached_Nodes.Clear();
             foreach (var node in Pending_Nodes)
@@ -161,7 +212,7 @@ namespace File_System_ES.Append
                 }
 
             UncommittedRoot = Insert_in_node(leaf, key, data_Address);
-            Commit();
+           Commit();
         }
 
         public bool Delete(int key)

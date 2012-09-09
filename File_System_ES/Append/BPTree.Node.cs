@@ -109,12 +109,15 @@ namespace File_System_ES.Append
 
         public override string ToString()
         {
+            if(Key_Num <= 0)
+                return string.Format("{0} Invalid", Address);
+
             var keys = "";
             for (int i = 0; i < Key_Num; i++)
                 keys += Keys[i] + ", ";
             keys = keys.TrimEnd(' ', ',');
 
-            //for(int i=0; i< Key_Num + 1
+  
             string root = Parent == null ? "(Root)" : "";
             if (IsLeaf)
                 return string.Format("{2} {1} Leaf : {0}", keys, root, Address);

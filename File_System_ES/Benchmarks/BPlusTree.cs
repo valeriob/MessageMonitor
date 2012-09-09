@@ -24,8 +24,14 @@ namespace File_System_ES.Benchmarks
             var indexStream = new MyFileStream(indexFile, FileMode.OpenOrCreate);
             var dataStream = new FileStream(dataFile, FileMode.OpenOrCreate);
 
-            var appendBpTree = new Append.BPlusTree(indexStream, dataStream, 11);
+            var appendBpTree = new Append.BPlusTree(indexStream, dataStream, 3);
             tree = new String_BPlusTree(appendBpTree);
+
+
+            //for (int i = 0; i <= 1000000; i++)
+            //{
+            //    tree.Put(i, "text about " + i);
+            //}
         }
 
 
@@ -42,14 +48,16 @@ namespace File_System_ES.Benchmarks
                 {
                     tree.Put(i, "text about " + i);
 
-                    //for (int k = i; k >= 0; k--)
-                    //    result = tree.Get(k);
+                    for (int k = i; k >= 0; k--)
+                        result = tree.Get(k);
                     
                     //result = tree.Get(i);
                 }
 
             }
-
+            var inner = tree.BPlusTree as Append.BPlusTree;
+            int wasted = inner.Empty_Slots.Where(s => s != null).Sum(s => s.Length);
+            var stats = inner.Empty_Slots.Where(s => s != null).GroupBy(g => g.Length).ToList();
         }
     }
 
