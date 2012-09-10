@@ -57,6 +57,12 @@ namespace File_System_ES.Append
 
             Pending_Changes.Add_Block_Address_To_Available_Space();
 
+            foreach (var address in Pending_Changes.Freed_Empty_Slots)
+            {
+                Index_Stream.Seek(address, SeekOrigin.Begin);
+                Index_Stream.Write(BitConverter.GetBytes(-1), 0, 4);
+            }
+
             Root = Pending_Changes.Uncommitted_Root;
 
             Cached_Nodes.Clear();

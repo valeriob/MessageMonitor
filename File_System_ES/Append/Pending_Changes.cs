@@ -35,7 +35,7 @@ namespace File_System_ES.Append
 
 
         List<Block_Group> Empty_Slots;
-        List<long> Freed_Empty_Slots;
+        public List<long> Freed_Empty_Slots;
         List<Node> Pending_Nodes;
         List<Node> Nodes;
 

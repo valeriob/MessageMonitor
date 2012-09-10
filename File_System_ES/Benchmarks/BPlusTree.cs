@@ -9,26 +9,28 @@ namespace File_System_ES.Benchmarks
     public class BPlusTree : Benchmark
     {
         String_BPlusTree tree;
+        Stream indexStream;
+
         public BPlusTree()
         {
             var indexFile = "index.dat";
             var dataFile = "data.dat";
 
-            if (File.Exists(indexFile))
-                File.Delete(indexFile);
-            if (File.Exists(dataFile))
-                File.Delete(dataFile);
+            //if (File.Exists(indexFile))
+            //    File.Delete(indexFile);
+            //if (File.Exists(dataFile))
+            //    File.Delete(dataFile);
             
             //var indexStream = new MemoryStream();
             //var dataStream = new MemoryStream();
             //var indexStream = new MyFileStream(indexFile, FileMode.OpenOrCreate);
-            var indexStream = new FileStream(indexFile, FileMode.OpenOrCreate);
+             indexStream = new FileStream(indexFile, FileMode.OpenOrCreate);
             //var indexStream = new FileStream(indexFile, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None, 4096,
             //    FileOptions.WriteThrough | FileOptions.SequentialScan );
 
             var dataStream = new FileStream(dataFile, FileMode.OpenOrCreate);
 
-            var appendBpTree = new Append.BPlusTree(indexStream, dataStream, 11);
+            var appendBpTree = new Append.BPlusTree(indexStream, dataStream, 3);
             tree = new String_BPlusTree(appendBpTree);
 
             //for (int i = 0; i <= 1000000; i += 1)
@@ -44,6 +46,8 @@ namespace File_System_ES.Benchmarks
 
         public override void Run(int number_Of_Inserts, int batch)
         {
+            Count_Empty_Slots();
+            return;
             string result;
 
             /// Random
@@ -110,6 +114,24 @@ namespace File_System_ES.Benchmarks
             var rgps = File_System_ES.Append.Pending_Changes._statistics_blocks_found.GroupBy(g => g).ToList();
             int wasted = inner.Empty_Slots.Sum(s => s.Length * s.Blocks.Count);
             var stats = inner.Empty_Slots.GroupBy(g => g.Length).ToList();
+        }
+
+        protected void Count_Empty_Slots()
+        {
+            int invalid = 0;
+            int valid = 0;
+
+            indexStream.Seek(8, SeekOrigin.Begin);
+            var buffer = new byte[File_System_ES.Append.Node.Size_In_Bytes(3)];
+            while (indexStream.Read(buffer, 0, buffer.Length) > 0)
+            {
+                var node = File_System_ES.Append.Node.From_Bytes(buffer, 3);
+                if (node.IsValid)
+                    valid++;
+                else
+                    invalid++;
+            }
+
         }
     }
 
