@@ -107,7 +107,10 @@ namespace File_System_ES.Append
             throw new Exception("Key " + key + " not found !");
         }
 
-
+        public bool IsValid
+        {
+            get { return Key_Num > 0; } 
+        }
 
         public override string ToString()
         {

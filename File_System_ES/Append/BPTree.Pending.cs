@@ -15,11 +15,9 @@ namespace File_System_ES.Append
 
         private long _index_Pointer;
         public long Get_Index_Pointer() { return _index_Pointer; }
-        //public List<Block_Group> Get_Empty_Slots() { return Empty_Slots; }
-        public List<long> Get_Freed_Slots() { return Freed_Empty_Slots; }
+        public List<Block_Group> Get_Empty_Slots() { return Empty_Slots; }
 
-
-        public Pending_Changes(Stream index_Stream, int blockSize, List<Block_Group> emptySlots)
+        public Pending_Changes(Stream index_Stream, int blockSize, long index_Pointer, List<Block_Group> emptySlots)
         {
             Index_Stream = index_Stream;
             Block_Size = blockSize;
@@ -27,9 +25,12 @@ namespace File_System_ES.Append
             Freed_Empty_Slots = new List<long>();
             Pending_Nodes = new List<Node>();
             Nodes = new List<Node>();
-            Empty_Slots = emptySlots;
+            Empty_Slots = emptySlots; // TODO copy by value !
 
-            _index_Pointer = Math.Max(8, index_Stream.Length);
+            _base_Address_Index = Empty_Slots.SelectMany(s => s.Blocks.Select(m => m.Value)).ToDictionary(d => d.Base_Address());
+            _end_Address_Index = Empty_Slots.SelectMany(s => s.Blocks.Select(m => m.Value)).ToDictionary(d => d.End_Address());
+
+            _index_Pointer = index_Pointer;
         }
 
 
@@ -63,9 +64,9 @@ namespace File_System_ES.Append
         }
 
 
-        protected void Add_Block_Address_To_Available_Space(IEnumerable<long> addresses)
+        public void Add_Block_Address_To_Available_Space()
         {
-            foreach (var address in addresses)
+            foreach (var address in Freed_Empty_Slots)
             {
                 if (_end_Address_Index.ContainsKey(address))
                 {
@@ -320,12 +321,12 @@ namespace File_System_ES.Append
                     Block_Usage_Finished(block);
             }
 
-            Add_Block_Address_To_Available_Space(Freed_Empty_Slots);
+            //Add_Block_Address_To_Available_Space(Freed_Empty_Slots);
 
             Nodes.Clear();
             Nodes.AddRange(Pending_Nodes);
             Pending_Nodes.Clear();
-            Freed_Empty_Slots.Clear();
+            //Freed_Empty_Slots.Clear();
             Uncommitted_Root = root;
         }
 

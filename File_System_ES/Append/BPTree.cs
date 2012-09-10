@@ -52,6 +52,8 @@ namespace File_System_ES.Append
             Index_Stream.Write(BitConverter.GetBytes(Pending_Changes.Uncommitted_Root.Address), 0, 8);
             writes++;
 
+            Pending_Changes.Add_Block_Address_To_Available_Space();
+
             Root = Pending_Changes.Uncommitted_Root;
 
             Cached_Nodes.Clear();
@@ -60,7 +62,7 @@ namespace File_System_ES.Append
 
             _index_Pointer = Pending_Changes.Get_Index_Pointer();
             Empty_Slots = Pending_Changes.Get_Empty_Slots();
-            Pending_Changes.fre
+
             Pending_Changes = null;
 
             Index_Stream.Flush();
@@ -83,10 +85,12 @@ namespace File_System_ES.Append
                 long rootIndex = BitConverter.ToInt64(buffer, 0);
 
                 Root = Read_Node(null, rootIndex);
-                return;
+                if(Root.IsValid)
+                    return;
             }
             catch (Exception) { }
-            Pending_Changes = new Pending_Changes(Index_Stream, Block_Size, Empty_Slots);
+            
+            Pending_Changes = new Pending_Changes(Index_Stream, Block_Size, _index_Pointer, Empty_Slots);
             var root = Node.Create_New(Size, true);
             Write_Node(root);
             Pending_Changes.Append_New_Root(root);
@@ -109,7 +113,7 @@ namespace File_System_ES.Append
             Write_Data(value, key, 1);
 
             if (Pending_Changes == null)
-                Pending_Changes = new Pending_Changes(Index_Stream, Block_Size, Empty_Slots);
+                Pending_Changes = new Pending_Changes(Index_Stream, Block_Size, _index_Pointer, Empty_Slots);
 
             Node newRoot = null;
             for(int i=0; i< leaf.Key_Num; i++)
@@ -248,6 +252,8 @@ namespace File_System_ES.Append
                     if (i == root.Key_Num || key < root.Keys[i])
                     {
                         root = Read_Node(root, root.Pointers[i]);
+                        if (!root.IsValid)
+                            throw new Exception("An Invalid node was read");
                         depth++;
                         break;
                     }

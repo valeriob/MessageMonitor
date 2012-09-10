@@ -38,17 +38,18 @@ namespace File_System_ES.Append
         
         protected Node Read_Node(Node parent, long address)
         {
-            //if (Pending_Changes != null)
-            //{
-            //    var cachedNode = Pending_Changes.Last_Cached_Nodes().SingleOrDefault(n => n.Address == address);
-            //    if (cachedNode != null)
-            //        return cachedNode;
-            //}else
-            //    if (Cached_Nodes.ContainsKey(address))
-            //    {
-            //        cache_hits++;
-            //        return Cached_Nodes[address];
-            //    }
+            if (Pending_Changes != null)
+            {
+                var cachedNode = Pending_Changes.Last_Cached_Nodes().SingleOrDefault(n => n.Address == address);
+                if (cachedNode != null)
+                    return cachedNode;
+            }
+            else
+                if (Cached_Nodes.ContainsKey(address))
+                {
+                    cache_hits++;
+                    return Cached_Nodes[address];
+                }
 
             cache_misses++;
 
