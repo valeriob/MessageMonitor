@@ -8,7 +8,7 @@ namespace File_System_ES.Append
 {
     public partial class BPlusTree
     {
-        public Block[] Empty_Slots = new Block[0];
+        public List<Block_Group> Empty_Slots = new List<Block_Group>();
         public Dictionary<long,Node> Cached_Nodes { get; set; }
     }
 

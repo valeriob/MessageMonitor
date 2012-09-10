@@ -14,9 +14,10 @@ namespace File_System_ES.Append
 
         private long _index_Pointer;
         public long Get_Index_Pointer() { return _index_Pointer; }
-        public Block[] Get_Empty_Slots() { return Empty_Slots; }
+        public List<Block_Group> Get_Empty_Slots() { return Empty_Slots; }
 
-        public Pending_Changes(Stream index_Stream, int blockSize, Block[] emptySlots)
+
+        public Pending_Changes(Stream index_Stream, int blockSize, List<Block_Group> emptySlots)
         {
             Index_Stream = index_Stream;
             Block_Size = blockSize;
@@ -29,8 +30,10 @@ namespace File_System_ES.Append
             _index_Pointer = Math.Max(8, index_Stream.Length);
         }
 
+
         //Tree.AVLTree<int, Block> Empty_Slots;
-        Block[] Empty_Slots;
+        //Block[] Empty_Slots;
+        List<Block_Group> Empty_Slots;
         List<long> Freed_Empty_Slots;
         List<Node> Pending_Nodes;
         List<Node> Nodes;
@@ -45,15 +48,14 @@ namespace File_System_ES.Append
             var block = usage_Block.Block;
 
             var base_Address = block.Base_Address();
+           
+            Fix_Block_Position_In_Groups(block,block.Length, block.Length - usage_Block.Used_Length);
 
             _base_Address_Index.Remove(base_Address);
             block.Reserve_Size(usage_Block.Used_Length);
 
             if (block.IsEmpty())
-            {
                 _end_Address_Index.Remove(block.End_Address());
-                Empty_Slots[usage_Block.Index] = null;
-            }
             else
                 _base_Address_Index[block.Base_Address()] = block;
         }
@@ -67,26 +69,33 @@ namespace File_System_ES.Append
                 {
                     Block before = _end_Address_Index[address];
 
+                    int beforeLength = before.Length;
                     before.Append_Block(Block_Size);
+                    int newLength = before.Length;
+
                     if (_base_Address_Index.ContainsKey(address + Block_Size))
                     {
                         Block after = _base_Address_Index[address + Block_Size];
+
+                        //Fix_Block_Position_In_Groups(before, before.Length, before.Length + after.Length);
+                        newLength += after.Length;
                         before.Append_Block(after.Length);
 
                         _base_Address_Index.Remove(address + Block_Size);
-
-                        var idx = Array.IndexOf(Empty_Slots, after);
-                        Empty_Slots[idx] = null;
                     }
 
                     _end_Address_Index.Remove(address);
                     _end_Address_Index[before.End_Address()] = before;
+
+                    Fix_Block_Position_In_Groups(before, beforeLength, newLength);
                     continue;
                 }
 
                 if (_base_Address_Index.ContainsKey(address + Block_Size))
                 {
                     Block after = _base_Address_Index[address + Block_Size];
+
+                    Fix_Block_Position_In_Groups(after, after.Length, after.Length + Block_Size);
 
                     _base_Address_Index.Remove(after.Base_Address());
                     after.Prepend_Block(Block_Size);
@@ -98,60 +107,118 @@ namespace File_System_ES.Append
             }
         }
 
-        protected IEnumerable<Block_Usage> Look_For_Available_Blocks(int size)
+        protected Block_Group? Find_Block_Group(int length)
         {
-            Array.Sort(Empty_Slots);
+            return Empty_Slots.Where(s => s.Length == length)
+                    .Select(s => new Nullable<Block_Group>(s))
+                    .DefaultIfEmpty(new Nullable<Block_Group>())
+                    .SingleOrDefault();
+        }
 
-            int foundIndex = Array.BinarySearch(Empty_Slots, new Block(0, size));
-            if (foundIndex > 0)
+        protected void Fix_Block_Position_In_Groups(Block block, int old_Length, int length)
+        {
+            var group = Find_Block_Group(old_Length);
+            group.Value.Blocks.Remove(old_Length);
+
+            if (length == 0)
+                return;
+            group = Find_Block_Group(length);
+            if (group == null)
             {
-                var result = Empty_Slots[foundIndex];
-                yield return new Block_Usage(result, foundIndex);
+                group = new Block_Group { Length = length, Blocks = new Dictionary<long,Block>() };
+                Empty_Slots.Add(group.Value);
             }
-            else
+            group.Value.Blocks[length] = block;
+        }
+
+        protected IEnumerable<Block_Usage> Look_For_Available_Blocks(int length)
+        {
+            Empty_Slots.Sort(new Length_Comparer(length));
+
+            var enumerator = Empty_Slots.GetEnumerator();
+            while (enumerator.MoveNext() && length > 0)
             {
-                int complement = ~foundIndex;
-                if (complement != Empty_Slots.Length)
+                var group = enumerator.Current;
+
+                var blocks = group.Blocks.Values.GetEnumerator();
+                while (blocks.MoveNext() && length > 0)
                 {
-                    var result = Empty_Slots[complement];
-                    yield return new Block_Usage(result, complement);
-                }
-                else  // scamuzzolandia !
-                {
-                    int index = Empty_Slots.Length - 1;
-                    int max = 10;
-                    while (index > 0 && size > 0 && max > 0)
-                    {
-                        var result = Empty_Slots[index];
-                        if (result == null)
-                            break;
-                        yield return new Block_Usage(result, index);
-                        size -= result.Length;
-                        index--;
-                        max--;
-                    }
+                    var block = blocks.Current;
+                    yield return new Block_Usage(block, -1);
+                    length -= group.Length;
                 }
             }
+
+            //}
+            //Array.Sort(Empty_Slots);
+
+            //int foundIndex = Array.BinarySearch(Empty_Slots, new Block(0, lenght));
+            //if (foundIndex > 0)
+            //{
+            //    var result = Empty_Slots[foundIndex];
+            //    yield return new Block_Usage(result, foundIndex);
+            //}
+            //else
+            //{
+            //    int complement = ~foundIndex;
+            //    if (complement != Empty_Slots.Length)
+            //    {
+            //        var result = Empty_Slots[complement];
+            //        yield return new Block_Usage(result, complement);
+            //    }
+            //    else  // scamuzzolandia !
+            //    {
+            //        int index = Empty_Slots.Length - 1;
+            //        int max = 10;
+            //        while (index > 0 && lenght > 0 && max > 0)
+            //        {
+            //            var result = Empty_Slots[index];
+            //            if (result == null)
+            //                break;
+            //            yield return new Block_Usage(result, index);
+            //            lenght -= result.Length;
+            //            index--;
+            //            max--;
+            //        }
+            //    }
+            //}
         }
 
         protected void Insert_Block(long address, int lenght)
         {
-            Array.Sort(Empty_Slots);
+            Block_Group? group = Empty_Slots.Where(s => s.Length == lenght)
+                .Select(s=> new Nullable<Block_Group>(s)) 
+                .DefaultIfEmpty(new Nullable<Block_Group>())
+                .SingleOrDefault();
 
-            var emptyIndex = Array.BinarySearch(Empty_Slots, null);
-            var old_lenght = Empty_Slots.Length;
-
-            Block block = null;
-            if (emptyIndex < 0)
+            if (group == null)
             {
-                Array.Resize(ref Empty_Slots, old_lenght + 8);
-                block = Empty_Slots[old_lenght] = new Block(address, lenght);
+                group = new Block_Group() { Length = lenght, Blocks = new Dictionary<long,Block>() };
+                Empty_Slots.Add(group.Value);
             }
-            else
-                block = Empty_Slots[emptyIndex] = new Block(address, lenght);
+
+            var block = new Block(address, lenght);
+            group.Value.Blocks[lenght] = block;
 
             _base_Address_Index[address] = block;
             _end_Address_Index[block.End_Address()] = block;
+
+            //Array.Sort(Empty_Slots);
+
+            //var emptyIndex = Array.BinarySearch(Empty_Slots, null);
+            //var old_lenght = Empty_Slots.Length;
+
+            //Block block = null;
+            //if (emptyIndex < 0)
+            //{
+            //    Array.Resize(ref Empty_Slots, old_lenght + 8);
+            //    block = Empty_Slots[old_lenght] = new Block(address, lenght);
+            //}
+            //else
+            //    block = Empty_Slots[emptyIndex] = new Block(address, lenght);
+
+            //_base_Address_Index[address] = block;
+            //_end_Address_Index[block.End_Address()] = block;
         }
 
         protected void Update_Addresses_From(Node[] nodes, Node root, Queue<long> addresses)
@@ -265,6 +332,50 @@ namespace File_System_ES.Append
         public IEnumerable<Node> Last_Cached_Nodes()
         {
             return Nodes;
+        }
+    }
+
+    public struct Block_Group
+    {
+        public int Length { get; set; }
+        public Dictionary<long,Block> Blocks { get; set; }
+    }
+
+
+    public class Length_Comparer : IComparer<Block_Group>
+    {
+        public long Length { get; set; }
+        public Length_Comparer(long length)
+        {
+            Length = length;
+        }
+
+        public int Compare(Block_Group x, Block_Group y)
+        {
+            long dx = Length - x.Length;
+            long dy = Length - y.Length;
+
+            if (dx == 0 && dy == 0)
+                return 0;
+
+            if (dx == 0)
+                return -1;
+            if (dy == 0)
+                return 1;
+
+            if (dx < 0 && dy < 0)
+                return Math.Sign(dy - dx);
+
+            if (dx > 0 && dy > 0)
+                return Math.Sign(dx - dy);
+
+            if (dx > 0 && dy < 0)
+                return 1;
+
+            if (dx < 0 && dy > 0)
+                return -1;
+
+            return 0;
         }
     }
 }

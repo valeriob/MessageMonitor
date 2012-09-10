@@ -16,7 +16,7 @@ namespace File_System_ES.Benchmarks
             { 
               // new Ravendb(),
                new BPlusTree(),
-               //new File_Flush_Benchmark(),
+              // new File_Flush_Benchmark(),
              //  new CSharpTest_BPlusTree(),
             //  new Esent(),
             //   new SqlServer()
@@ -26,7 +26,7 @@ namespace File_System_ES.Benchmarks
 
             foreach (var b in benchmarks)
             {
-                var result = new Result {Name= b.GetType().Name, Start = DateTime.Now, Count = count, Batch = batch };
+                var result = new Result { Name= b.GetType().Name, Start = DateTime.Now, Count = count, Batch = batch };
                 b.Run(count, batch.GetValueOrDefault(1));
                 result.Stop = DateTime.Now;
                 results.Add(result);
