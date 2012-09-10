@@ -253,6 +253,7 @@ namespace File_System_ES.Append
                         depth++;
                         break;
                     }
+                Debug.Assert(depth < 100);
             }
 
             return root;

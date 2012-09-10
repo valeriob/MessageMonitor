@@ -28,7 +28,7 @@ namespace File_System_ES.Benchmarks
 
             var dataStream = new FileStream(dataFile, FileMode.OpenOrCreate);
 
-            var appendBpTree = new Append.BPlusTree(indexStream, dataStream, 3);
+            var appendBpTree = new Append.BPlusTree(indexStream, dataStream, 11);
             tree = new String_BPlusTree(appendBpTree);
         }
 
@@ -44,9 +44,12 @@ namespace File_System_ES.Benchmarks
             {
                 int value = random.Next();
                 tree.Put(value, "text about " + value);
-                tree.Commit();
+
+                if (count % 100 == 0)
+                    tree.Commit();
                 count--;
             }
+            //tree.Commit();
             /// Reverse
             //for (int i = number_Of_Inserts; i >= 0; i -= batch)
             //{
@@ -74,7 +77,7 @@ namespace File_System_ES.Benchmarks
 
             var inner = tree.BPlusTree as Append.BPlusTree;
             var rgps = File_System_ES.Append.Pending_Changes._statistics_blocks_found.GroupBy(g => g).ToList();
-            int wasted = inner.Empty_Slots.Sum(s => s.Length);
+            int wasted = inner.Empty_Slots.Sum(s => s.Length * s.Blocks.Count);
             var stats = inner.Empty_Slots.GroupBy(g => g.Length).ToList();
         }
     }
