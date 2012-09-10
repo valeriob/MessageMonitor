@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -14,7 +15,8 @@ namespace File_System_ES.Append
 
         private long _index_Pointer;
         public long Get_Index_Pointer() { return _index_Pointer; }
-        public List<Block_Group> Get_Empty_Slots() { return Empty_Slots; }
+        //public List<Block_Group> Get_Empty_Slots() { return Empty_Slots; }
+        public List<long> Get_Freed_Slots() { return Freed_Empty_Slots; }
 
 
         public Pending_Changes(Stream index_Stream, int blockSize, List<Block_Group> emptySlots)
@@ -49,7 +51,7 @@ namespace File_System_ES.Append
 
             var base_Address = block.Base_Address();
            
-            Fix_Block_Position_In_Groups(block,block.Length, block.Length - usage_Block.Used_Length);
+            Fix_Block_Position_In_Groups(block, block.Length, block.Length - usage_Block.Used_Length);
 
             _base_Address_Index.Remove(base_Address);
             block.Reserve_Size(usage_Block.Used_Length);
@@ -77,7 +79,7 @@ namespace File_System_ES.Append
                     {
                         Block after = _base_Address_Index[address + Block_Size];
 
-                        //Fix_Block_Position_In_Groups(before, before.Length, before.Length + after.Length);
+                        Fix_Block_Position_In_Groups(after, after.Length, 0);
                         newLength += after.Length;
                         before.Append_Block(after.Length);
 
@@ -149,7 +151,6 @@ namespace File_System_ES.Append
                 }
             }
 
-            //}
             //Array.Sort(Empty_Slots);
 
             //int foundIndex = Array.BinarySearch(Empty_Slots, new Block(0, lenght));

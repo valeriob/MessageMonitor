@@ -60,6 +60,7 @@ namespace File_System_ES.Append
 
             _index_Pointer = Pending_Changes.Get_Index_Pointer();
             Empty_Slots = Pending_Changes.Get_Empty_Slots();
+            Pending_Changes.fre
             Pending_Changes = null;
 
             Index_Stream.Flush();
@@ -74,17 +75,17 @@ namespace File_System_ES.Append
 
         private void Init()
         {
-            //try
-            //{
-            //    var buffer = new byte[8];
-            //    Index_Stream.Seek(0, SeekOrigin.Begin);
-            //    Index_Stream.Read(buffer, 0, 8);
-            //    long rootIndex = BitConverter.ToInt64(buffer, 0);
+            try
+            {
+                var buffer = new byte[8];
+                Index_Stream.Seek(0, SeekOrigin.Begin);
+                Index_Stream.Read(buffer, 0, 8);
+                long rootIndex = BitConverter.ToInt64(buffer, 0);
 
-            //    Root = Read_Node(null, rootIndex);
-            //    return;
-            //}
-            //catch (Exception) { }
+                Root = Read_Node(null, rootIndex);
+                return;
+            }
+            catch (Exception) { }
             Pending_Changes = new Pending_Changes(Index_Stream, Block_Size, Empty_Slots);
             var root = Node.Create_New(Size, true);
             Write_Node(root);
@@ -125,9 +126,6 @@ namespace File_System_ES.Append
                     Pending_Changes.Append_New_Root(newRoot);
                     return;
                 }
-
-
-            //Write_Data(value, key, 1); 
 
             newRoot = Insert_in_node(leaf, key, data_Address);
 
