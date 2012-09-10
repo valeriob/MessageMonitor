@@ -10,25 +10,14 @@ namespace File_System_ES.Append
 {
     public partial class BPlusTree
     {
-        //public List<Node> Pending_Nodes { get; set; }
-
         private long _index_Pointer;
-        //private long Index_Pointer()
-        //{
-        //    return _index_Pointer;
-        //}
-
         private long _data_Pointer;
+
         private long Data_Pointer()
         {
             return _data_Pointer;
         }
-       // private long _committed_Index_Pointer;
 
-
-
-
-  
 
         protected void Write_Node(Node node)
         {
@@ -42,14 +31,16 @@ namespace File_System_ES.Append
             {
                 var cachedNode = Pending_Changes.Last_Cached_Nodes().SingleOrDefault(n => n.Address == address);
                 if (cachedNode != null)
-                    return cachedNode;
-            }
-            else
-                if (Cached_Nodes.ContainsKey(address))
                 {
                     cache_hits++;
-                    return Cached_Nodes[address];
+                    return cachedNode;
                 }
+            }
+            if (Cached_Nodes.ContainsKey(address))
+            {
+                cache_hits++;
+                return Cached_Nodes[address];
+            }
 
             cache_misses++;
 

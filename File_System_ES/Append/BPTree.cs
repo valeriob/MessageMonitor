@@ -18,6 +18,9 @@ namespace File_System_ES.Append
         
         protected int Size { get; set; }
 
+        public List<Block_Group> Empty_Slots = new List<Block_Group>();
+        public Dictionary<long, Node> Cached_Nodes { get; set; }
+
         public Dictionary<long, int> _readMemory_Count = new Dictionary<long, int>();
         public Dictionary<long, int> _writeMemory_Count = new Dictionary<long, int>();
         public long cache_hits;

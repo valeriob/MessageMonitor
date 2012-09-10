@@ -68,8 +68,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Append\BPTree.Pending.cs" />
-    <Compile Include="Append\BPTree.Usage.cs" />
+    <Compile Include="Append\Data.cs" />
+    <Compile Include="Append\Pending_Changes.cs" />
+    <Compile Include="Append\Block.cs" />
+    <Compile Include="Append\Empty_Space.cs" />
     <Compile Include="Basic_Heap.cs" />
     <Compile Include="Benchmarks\Benchmark.cs" />
     <Compile Include="Benchmarks\BPlusTree.cs" />
@@ -80,8 +82,8 @@
     <Compile Include="Benchmarks\SqlServer.cs" />
     <Compile Include="IBPTree.cs" />
     <Compile Include="Append\BPTree.cs" />
-    <Compile Include="Append\BPTree.persistence.cs" />
-    <Compile Include="Append\BPTree.Node.cs" />
+    <Compile Include="Append\BPTree.Persistence.cs" />
+    <Compile Include="Append\Node.cs" />
     <Compile Include="String_BPTree_V3.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

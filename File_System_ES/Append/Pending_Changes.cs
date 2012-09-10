@@ -34,8 +34,6 @@ namespace File_System_ES.Append
         }
 
 
-        //Tree.AVLTree<int, Block> Empty_Slots;
-        //Block[] Empty_Slots;
         List<Block_Group> Empty_Slots;
         List<long> Freed_Empty_Slots;
         List<Node> Pending_Nodes;
@@ -66,6 +64,7 @@ namespace File_System_ES.Append
 
         public void Add_Block_Address_To_Available_Space()
         {
+            // TODO compact addresses
             foreach (var address in Freed_Empty_Slots)
             {
                 if (_end_Address_Index.ContainsKey(address))
@@ -112,6 +111,7 @@ namespace File_System_ES.Append
 
         protected Block_Group? Find_Block_Group(int length)
         {
+            // TODO slow
             return Empty_Slots.Where(s => s.Length == length)
                     .Select(s => new Nullable<Block_Group>(s))
                     .DefaultIfEmpty(new Nullable<Block_Group>())
@@ -204,24 +204,8 @@ namespace File_System_ES.Append
 
             _base_Address_Index[address] = block;
             _end_Address_Index[block.End_Address()] = block;
-
-            //Array.Sort(Empty_Slots);
-
-            //var emptyIndex = Array.BinarySearch(Empty_Slots, null);
-            //var old_lenght = Empty_Slots.Length;
-
-            //Block block = null;
-            //if (emptyIndex < 0)
-            //{
-            //    Array.Resize(ref Empty_Slots, old_lenght + 8);
-            //    block = Empty_Slots[old_lenght] = new Block(address, lenght);
-            //}
-            //else
-            //    block = Empty_Slots[emptyIndex] = new Block(address, lenght);
-
-            //_base_Address_Index[address] = block;
-            //_end_Address_Index[block.End_Address()] = block;
         }
+
 
         protected void Update_Addresses_From(Node[] nodes, Node root, Queue<long> addresses)
         {
@@ -241,7 +225,6 @@ namespace File_System_ES.Append
                 root.Update_Child_Address(old_Child_Address, nodes[i].Address);
             }
         }
-
 
         protected void Update_Addresses_From_Base(Node[] nodes, Node root, ref long base_Address)
         {
@@ -307,7 +290,7 @@ namespace File_System_ES.Append
                 int buffer_Size = toUpdate.Count * Block_Size;
                 var buffer = new byte[buffer_Size];
                 for (int i = 0; i < toUpdate.Count; i++)
-                    toUpdate[i].To_Bytes(buffer, i * Block_Size);
+                    toUpdate[i].To_Bytes_In_Buffer(buffer, i * Block_Size);
 
                 Index_Stream.Seek(block.Base_Address(), SeekOrigin.Begin);
                 Index_Stream.Write(buffer, 0, buffer.Length);

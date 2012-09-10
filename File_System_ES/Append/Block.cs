@@ -6,13 +6,6 @@ using System.Text;
 
 namespace File_System_ES.Append
 {
-    public partial class BPlusTree
-    {
-        public List<Block_Group> Empty_Slots = new List<Block_Group>();
-        public Dictionary<long,Node> Cached_Nodes { get; set; }
-    }
-
-
     public class Block : IComparable<Block>
     {
         public Block(long baseAddress, int lenght)
