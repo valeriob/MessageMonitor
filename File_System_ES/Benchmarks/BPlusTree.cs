@@ -30,7 +30,7 @@ namespace File_System_ES.Benchmarks
 
             var dataStream = new FileStream(dataFile, FileMode.OpenOrCreate);
 
-            var appendBpTree = new Append.BPlusTree(indexStream, dataStream, 11);
+            var appendBpTree = new Append.BPlusTree(indexStream, dataStream, 20);
             tree = new String_BPlusTree(appendBpTree);
 
             //for (int i = 0; i <= 1000000; i += 1)
