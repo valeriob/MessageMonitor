@@ -98,15 +98,13 @@ namespace File_System_ES.Append
 
     public class Block_Usage
     {
-        public Block_Usage(Block block, int index)
+        public Block_Usage(Block block)
         {
             Block = block;
-            Index = index;
         }
 
         public Block Block { get; protected set; }
         public int Used_Length { get; protected set; }
-        public int Index { get; protected set; }
 
         public void Use(int size)
         {

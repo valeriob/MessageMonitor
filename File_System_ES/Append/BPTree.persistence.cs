@@ -58,6 +58,8 @@ namespace File_System_ES.Append
             var node = Node.From_Bytes(buffer, Size);
             node.Parent = parent;
             node.Address = address;
+
+            Cached_Nodes[address] = node;
             return node;
         }
 

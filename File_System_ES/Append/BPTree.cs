@@ -15,6 +15,7 @@ namespace File_System_ES.Append
 
         protected Stream Index_Stream { get; set; }
         protected Stream Data_Stream { get; set; }
+        protected Stream Metadata_Stream { get; set; }
         
         protected int Size { get; set; }
 
@@ -28,13 +29,14 @@ namespace File_System_ES.Append
 
         public int Block_Size { get; set; }
 
-        public BPlusTree(Stream indexStream, Stream dataStream, int order)
+        public BPlusTree(Stream metadataStream, Stream indexStream, Stream dataStream, int order)
         {
             Size = order;
             Block_Size = Node.Size_In_Bytes(Size);
 
             Index_Stream = indexStream;
             Data_Stream = dataStream;
+            Metadata_Stream = metadataStream;
 
             Cached_Nodes = new Dictionary<long, Node>();
 
@@ -75,22 +77,23 @@ namespace File_System_ES.Append
 
         public void Commit()
         {
-            Index_Stream.Seek(0, SeekOrigin.Begin);
-            Index_Stream.Write(BitConverter.GetBytes(Pending_Changes.Uncommitted_Root.Address), 0, 8);
             writes++;
+            Metadata_Stream.Seek(0, SeekOrigin.Begin);
+            Metadata_Stream.Write(BitConverter.GetBytes(Pending_Changes.Uncommitted_Root.Address), 0, 8);
+            Metadata_Stream.Flush();
 
             Pending_Changes.Add_Block_Address_To_Available_Space();
 
-            foreach (var address in Pending_Changes.Freed_Empty_Slots)
-            {
-                Index_Stream.Seek(address, SeekOrigin.Begin);
-                Index_Stream.Write(BitConverter.GetBytes(-1), 0, 4);
-            }
-
+            //foreach (var address in Pending_Changes.Freed_Empty_Slots)
+            //{
+            //    Index_Stream.Seek(address, SeekOrigin.Begin);
+            //    Index_Stream.Write(BitConverter.GetBytes(-1), 0, 4);
+            //}
             //var usage = Count_Empty_Slots();
 
             Root = Pending_Changes.Uncommitted_Root;
 
+            // TODO persist empty pages on metadata
             Cached_Nodes.Clear();
             foreach (var node in Pending_Changes.Last_Cached_Nodes())
                 Cached_Nodes[node.Address] = node;
@@ -115,8 +118,8 @@ namespace File_System_ES.Append
             try
             {
                 var buffer = new byte[8];
-                Index_Stream.Seek(0, SeekOrigin.Begin);
-                Index_Stream.Read(buffer, 0, 8);
+                Metadata_Stream.Seek(0, SeekOrigin.Begin);
+                Metadata_Stream.Read(buffer, 0, 8);
                 long rootIndex = BitConverter.ToInt64(buffer, 0);
 
                 Root = Read_Node(null, rootIndex);
@@ -131,8 +134,8 @@ namespace File_System_ES.Append
             Pending_Changes.Append_New_Root(root);
         }
 
-   
 
+        Dictionary<long, Node> cache = new Dictionary<long, Node>();
         public byte[] Get(int key)
         {
             var leaf = Find_Leaf_Node(key);

@@ -14,23 +14,27 @@ namespace File_System_ES.Benchmarks
         public BPlusTree()
         {
             var indexFile = "index.dat";
+            var metadataFile = "metadata.dat";
             var dataFile = "data.dat";
 
             if (File.Exists(indexFile))
                 File.Delete(indexFile);
+            if (File.Exists(metadataFile))
+                File.Delete(metadataFile);
             if (File.Exists(dataFile))
                 File.Delete(dataFile);
             
             //var indexStream = new MemoryStream();
             //var dataStream = new MemoryStream();
             //var indexStream = new MyFileStream(indexFile, FileMode.OpenOrCreate);
+            var metadataStream = new FileStream(metadataFile, FileMode.OpenOrCreate);
              indexStream = new FileStream(indexFile, FileMode.OpenOrCreate);
             //var indexStream = new FileStream(indexFile, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None, 4096,
             //    FileOptions.WriteThrough | FileOptions.SequentialScan );
 
             var dataStream = new FileStream(dataFile, FileMode.OpenOrCreate);
 
-            var appendBpTree = new Append.BPlusTree(indexStream, dataStream, 20);
+            var appendBpTree = new Append.BPlusTree(metadataStream, indexStream, dataStream, 20);
             tree = new String_BPlusTree(appendBpTree);
 
             //for (int i = 0; i <= 1000000; i += 1)
@@ -96,15 +100,15 @@ namespace File_System_ES.Benchmarks
                     //for (int k = i; k >= 0; k--)
                     //    result = tree.Get(k);
 
-                    result = tree.Get(j);
+                   // result = tree.Get(j);
                 }
                 tree.Commit();
-               // var usage = Count_Empty_Slots();
+                // var usage = Count_Empty_Slots();
             }
 
 
             // Read Only
-            //for (int i = 0; i < number_Of_Inserts; i += batch)
+            //for (int i = 0; i < number_Of_Inserts; i++)
             //{
             //    result = tree.Get(i);
             //}
