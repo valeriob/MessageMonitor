@@ -50,10 +50,11 @@ namespace File_System_ES.Append
 
             var base_Address = block.Base_Address();
            
-            Fix_Block_Position_In_Groups(block, block.Length, block.Length - usage_Block.Used_Length);
 
             _base_Address_Index.Remove(base_Address);
             block.Reserve_Size(usage_Block.Used_Length);
+
+            Fix_Block_Position_In_Groups(block, base_Address, block.Base_Address(), block.Length + usage_Block.Used_Length, block.Length);
 
             if (block.IsEmpty())
                 _end_Address_Index.Remove(block.End_Address());
@@ -79,7 +80,8 @@ namespace File_System_ES.Append
                     {
                         Block after = _base_Address_Index[address + Block_Size];
 
-                        Fix_Block_Position_In_Groups(after, after.Length, 0);
+                        Fix_Block_Position_In_Groups(after, after.Base_Address(), 0, after.Length, 0);
+
                         newLength += after.Length;
                         before.Append_Block(after.Length);
 
@@ -89,7 +91,7 @@ namespace File_System_ES.Append
                     _end_Address_Index.Remove(address);
                     _end_Address_Index[before.End_Address()] = before;
 
-                    Fix_Block_Position_In_Groups(before, beforeLength, newLength);
+                    Fix_Block_Position_In_Groups(before, before.Base_Address(), before.Base_Address(), beforeLength, newLength);
                     continue;
                 }
 
@@ -97,11 +99,13 @@ namespace File_System_ES.Append
                 {
                     Block after = _base_Address_Index[address + Block_Size];
 
-                    Fix_Block_Position_In_Groups(after, after.Length, after.Length + Block_Size);
+                    //Fix_Block_Position_In_Groups(after, after.Length, after.Length + Block_Size);
 
                     _base_Address_Index.Remove(after.Base_Address());
                     after.Prepend_Block(Block_Size);
                     _base_Address_Index[after.Base_Address()] = after;
+
+                    Fix_Block_Position_In_Groups(after, after.Base_Address() + Block_Size, after.Base_Address(), after.Length - Block_Size, after.Length);
                     continue;
                 }
 
@@ -118,20 +122,20 @@ namespace File_System_ES.Append
                     .SingleOrDefault();
         }
 
-        protected void Fix_Block_Position_In_Groups(Block block, int old_Length, int length)
+        protected void Fix_Block_Position_In_Groups(Block block, long old_Address, long new_Address, int old_Length, int new_Length)
         {
             var group = Find_Block_Group(old_Length);
-            group.Value.Blocks.Remove(old_Length);
+            group.Value.Blocks.Remove(old_Address);
 
-            if (length == 0)
+            if (new_Length == 0)
                 return;
-            group = Find_Block_Group(length);
+            group = Find_Block_Group(new_Length);
             if (group == null)
             {
-                group = new Block_Group { Length = length, Blocks = new Dictionary<long,Block>() };
+                group = new Block_Group { Length = new_Length, Blocks = new Dictionary<long,Block>() };
                 Empty_Slots.Add(group.Value);
             }
-            group.Value.Blocks[length] = block;
+            group.Value.Blocks[new_Address] = block;
         }
 
         protected IEnumerable<Block_Usage> Look_For_Available_Blocks(int length)
@@ -200,7 +204,7 @@ namespace File_System_ES.Append
             }
 
             var block = new Block(address, lenght);
-            group.Value.Blocks[lenght] = block;
+            group.Value.Blocks[address] = block;
 
             _base_Address_Index[address] = block;
             _end_Address_Index[block.End_Address()] = block;
@@ -324,6 +328,11 @@ namespace File_System_ES.Append
     {
         public int Length { get; set; }
         public Dictionary<long,Block> Blocks { get; set; }
+
+        public override string ToString()
+        {
+            return string.Format("Length {0}, # {1}", Length, Blocks.Count);
+        }
     }
 
 
