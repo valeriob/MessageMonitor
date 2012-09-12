@@ -6,27 +6,28 @@ using System.Text;
 
 namespace File_System_ES.Append
 {
-    public class Block : IComparable<Block>
+    public struct Block : IComparable<Block>
     {
-        public Block(long baseAddress, int lenght)
-        {
-            _Base_Address = baseAddress;
-            Length = lenght;
-        }
+        //public Block(long baseAddress, int lenght)
+        //{
+        //    _Base_Address = baseAddress;
+        //    Length = lenght;
+        //}
+
+        public long? _Base_Address;
+        public int Length;
+
+
 
         public long End_Address()
         {
+
             return Base_Address() + Length;
         }
         public long Base_Address()
         {
             return _Base_Address.Value;
-        }
-
-        protected long? _Base_Address;
-
-        public int Length { get; protected set; }
-      
+        }      
 
         public bool IsEmpty()
         {
@@ -78,8 +79,9 @@ namespace File_System_ES.Append
 
         public override bool Equals(object obj)
         {
-            var other = obj as Block;
-            return other != null && other.Base_Address() == Base_Address();
+            return ((Block)obj).Base_Address() == Base_Address();
+            //var other = obj as Block;
+            //return other != null && other.Base_Address() == Base_Address();
         }
 
         public override int GetHashCode()
@@ -91,20 +93,22 @@ namespace File_System_ES.Append
 
         public int CompareTo(Block other)
         {
-            return other == null ? int.MaxValue : Length - other.Length;
+            return Length - other.Length;
+            //return other == null ? int.MaxValue : Length - other.Length;
         }
 
     }
 
-    public class Block_Usage
+    public struct Block_Usage
     {
-        public Block_Usage(Block block)
-        {
-            Block = block;
-        }
+        //public Block_Usage(Block block)
+        //{
+        //    Block = block;
+        //}
 
-        public Block Block { get; protected set; }
-        public int Used_Length { get; protected set; }
+
+        public Block Block { get; set; }
+        public int Used_Length { get; set; }
 
         public void Use(int size)
         {

@@ -113,11 +113,6 @@ namespace File_System_ES.Append
 
         protected Block_Group? Find_Block_Group(int length)
         {
-            // TODO slow
-            //return Empty_Slots.Where(s => s.Length == length)
-            //        .Select(s => new Nullable<Block_Group>(s))
-            //        .DefaultIfEmpty(new Nullable<Block_Group>())
-            //        .SingleOrDefault();
             for (int i = 0; i < Empty_Slots.Count; i++)
                 if (Empty_Slots[i].Length == length)
                     return Empty_Slots[i];
@@ -126,29 +121,35 @@ namespace File_System_ES.Append
 
         protected void Fix_Block_Position_In_Groups(Block block, long old_Address, long new_Address, int old_Length, int new_Length)
         {
-            var group = Find_Block_Group(old_Length);
-            group.Value.Blocks.Remove(old_Address);
+            for (int i = 0; i < Empty_Slots.Count; i++)
+                if (Empty_Slots[i].Length == old_Address)
+                    Empty_Slots[i].Blocks.Remove(old_Address);
+
 
             if (new_Length == 0)
                 return;
-            group = Find_Block_Group(new_Length);
-            if (group == null)
-            {
-                group = new Block_Group { Length = new_Length, Blocks = new Dictionary<long,Block>() };
-                Empty_Slots.Add(group.Value);
-            }
-            group.Value.Blocks[new_Address] = block;
+            for (int i = 0; i < Empty_Slots.Count; i++)
+                if (Empty_Slots[i].Length == old_Address)
+                {
+                    Empty_Slots[i].Blocks[new_Address] = block;
+                    return;
+                }
+
+            var group = new Block_Group { Length = new_Length, Blocks = new Dictionary<long, Block>() };
+            group.Blocks[new_Address] = block;
+            Empty_Slots.Add(group);
         }
 
-        protected List<Block_Usage> Look_For_Available_Blocks(int length)
+        protected Block_Usage[] Look_For_Available_Blocks(int length, ref int count)
         {
             //Empty_Slots.Sort(new Length_Comparer(length));
 
-            var result = new List<Block_Usage>();
+            var result = new Block_Usage[count];
 
             var enumerator = Empty_Slots.GetEnumerator();
-            int maxPages = 2;
-            while (enumerator.MoveNext() && length > 0 )// && maxPages > 0)
+
+            int index = 0;
+            while (enumerator.MoveNext() && length > 0 )
             {
                 var group = enumerator.Current;
 
@@ -156,12 +157,15 @@ namespace File_System_ES.Append
                 while (blocks.MoveNext() && length > 0)
                 {
                     var block = blocks.Current;
-                    result.Add(new Block_Usage(block));
+                    //result.Add(new Block_Usage(block));
+                    //result.Add(new Block_Usage{ Block= block });
+                    result[index++] = new Block_Usage { Block = block };
+                    //count--;
                     length -= group.Length;
-                    maxPages--;
                 }
             }
 
+            count = index;
             return result;
         }
 
@@ -175,7 +179,8 @@ namespace File_System_ES.Append
                 Empty_Slots.Add(group.Value);
             }
 
-            var block = new Block(address, lenght);
+            //var block = new Block(address, lenght);
+            var block = new Block { _Base_Address = address, Length = lenght };
             group.Value.Blocks[address] = block;
 
             _base_Address_Index[address] = block;
@@ -237,13 +242,15 @@ namespace File_System_ES.Append
         public int Total_Blocks_Count;
         public void Append_New_Root(Node root)
         {
-            var blocks = Look_For_Available_Blocks(Pending_Nodes.Count * Block_Size);
-            Total_Blocks_Count += blocks.Count;
+            int index = Pending_Nodes.Count + 1;
+            var blocks = Look_For_Available_Blocks(Pending_Nodes.Count * Block_Size, ref index);
+            Total_Blocks_Count += index;
             Appends_Count++;
 
-            var block_At_End_Of_File = new Block_Usage(new Block(_index_Pointer, int.MaxValue));
+            //var block_At_End_Of_File = new Block_Usage(new Block(_index_Pointer, int.MaxValue));
 
-            blocks.Add(block_At_End_Of_File);
+            blocks[index] = new Block_Usage { Block = new Block { _Base_Address = _index_Pointer, Length = int.MaxValue } }; 
+            //blocks.Add(block_At_End_Of_File);
 
             var addressesQueue = new Queue<long>();
             foreach (var block in blocks)
@@ -254,16 +261,17 @@ namespace File_System_ES.Append
 
             var nodes = new Queue<Node>(Pending_Nodes.OrderBy(d => d.Address));
 
-            foreach (var block in blocks)
+            for(int k=0; k<= index; k++)
+            //foreach (var block in blocks)
             {
                 if (nodes.Count == 0)
                     break;
 
                 var toUpdate = new List<Node>();
-                for (int j = 0; j < block.Length && nodes.Count > 0; j += Block_Size)
+                for (int j = 0; j < blocks[k].Length && nodes.Count > 0; j += Block_Size)
                 {
                     toUpdate.Add(nodes.Dequeue());
-                    block.Use(Block_Size);
+                    blocks[k].Use(Block_Size);
                 }
 
                 int buffer_Size = toUpdate.Count * Block_Size;
@@ -271,17 +279,21 @@ namespace File_System_ES.Append
                 for (int i = 0; i < toUpdate.Count; i++)
                     toUpdate[i].To_Bytes_In_Buffer(buffer, i * Block_Size);
 
-                Index_Stream.Seek(block.Base_Address(), SeekOrigin.Begin);
+                Index_Stream.Seek(blocks[k].Base_Address(), SeekOrigin.Begin);
                 Index_Stream.Write(buffer, 0, buffer.Length);
             }
 
-            foreach (var block in blocks)
-            {
-                if (block == block_At_End_Of_File)
-                   _index_Pointer = block.Base_Address() + block.Used_Length;
-                else
-                    Block_Usage_Finished(block);
-            }
+            for (int i = 0; i < index; i++)
+                Block_Usage_Finished(blocks[i]);
+            if(blocks[index].Used_Length >0)
+                _index_Pointer = blocks[index].Base_Address() + blocks[index].Used_Length;
+            //foreach (var block in blocks)
+            //{
+            //    if (block == block_At_End_Of_File)
+            //       _index_Pointer = block.Base_Address() + block.Used_Length;
+            //    else
+            //        Block_Usage_Finished(block);
+            //}
 
             Index_Stream.Flush();
             Nodes.Clear();

@@ -100,7 +100,7 @@ namespace File_System_ES.Benchmarks
                     //for (int k = i; k >= 0; k--)
                     //    result = tree.Get(k);
 
-                   // result = tree.Get(j);
+                    result = tree.Get(j);
                 }
                 tree.Commit();
                 // var usage = Count_Empty_Slots();
