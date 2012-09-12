@@ -69,6 +69,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Append\Data.cs" />
+    <Compile Include="Append\ISerializable.cs" />
     <Compile Include="Append\Pending_Changes.cs" />
     <Compile Include="Append\Block.cs" />
     <Compile Include="Append\Empty_Space.cs" />

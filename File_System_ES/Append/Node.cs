@@ -9,16 +9,16 @@ using System.Text;
 
 namespace File_System_ES.Append
 {
-    public class Node 
+    public class Node<T> where T: IComparable<T>, IEquatable<T>
     {
         public bool IsLeaf { get; set; }
 
-        public int[] Keys { get; set; }
+        public T[] Keys { get; set; }
         public long[] Pointers { get; set; }
         public int Key_Num { get; set; }
         public int[] Versions { get; set; }
 
-        public Node Parent { get; set; }
+        public Node<T> Parent { get; set; }
         public long Address { get; set; }
 
 
@@ -26,15 +26,16 @@ namespace File_System_ES.Append
         {
             IsLeaf = isLeaf;
             Pointers = new long[size + 1];
-            Keys = new int[size];
+            Keys = new T[size];
             Versions = new int[size];
         }
 
 
-        public void Insert_Key(int key, long address)
+        public void Insert_Key(T key, long address)
         {
             int x = 0;
-            while (x < Key_Num && Keys[x] < key) x++;
+            while (x < Key_Num && Keys[x].CompareTo(key) < 0) //Keys[x] < key) 
+                x++;
 
             for (int i = Key_Num; i > x; i--)
                 Keys[i] = Keys[i - 1];
@@ -64,12 +65,13 @@ namespace File_System_ES.Append
             throw new Exception("this should not happen");
         }
 
-        public Split Split()
+        public Split<T> Split()
         {
             int size = Keys.Length;
 
             var node_Left = Create_New_One_Like_This();
-            var node_Right = Node.Create_New(Keys.Length, node_Left.IsLeaf);
+            var node_Right = Create_New(Keys.Length, node_Left.IsLeaf);
+
             node_Right.Parent = node_Left.Parent;
             var mid_Key = node_Left.Keys[size / 2];
 
@@ -92,15 +94,15 @@ namespace File_System_ES.Append
                 mid_Key = node_Left.Keys[size / 2 + 1];
             }
 
-            return new Split { Node_Left= node_Left,  Node_Right = node_Right, Mid_Key = mid_Key };
+            return new Split<T> { Node_Left= node_Left,  Node_Right = node_Right, Mid_Key = mid_Key };
         }
 
 
 
-        public long Get_Data_Address(int key)
+        public long Get_Data_Address(T key)
         {
             for (int i = 0; i < Keys.Length; i++)
-                if (Keys[i] == key)
+                if (Keys[i].Equals(key))
                     return Pointers[i+1];
 
             throw new Exception("Key " + key + " not found !");
@@ -133,7 +135,7 @@ namespace File_System_ES.Append
 
 
 
-        public Node Create_New_One_Like_This()
+        public Node<T> Create_New_One_Like_This()
         {
             var node = Create_New(Keys.Length, IsLeaf);
             node.Key_Num = Key_Num;
@@ -145,7 +147,7 @@ namespace File_System_ES.Append
             return node;
         }
 
-        public void To_Bytes_In_Buffer(byte[] buffer, int startIndex)
+        public void To_Bytes_In_Buffer(byte[] buffer, int startIndex,  ISerializer<T> serializer)
         {
             int key_Num = Key_Num;
 
@@ -154,13 +156,15 @@ namespace File_System_ES.Append
 
             int offset = startIndex + 5;
             for (int i = 0; i < key_Num; i++)
-                Array.Copy(BitConverter.GetBytes(Keys[i]), 0, buffer, offset + 4 * i, 4);
+                //Array.Copy(BitConverter.GetBytes(Keys[i]), 0, buffer, offset + 4 * i, 4);
+                Array.Copy(serializer.To_Bytes(Keys[i]), 0, buffer, offset + 4 * i, serializer.Fixed_Size() );
 
             offset = startIndex + 5 + 4 * Keys.Length;
             for (int i = 0; i < key_Num + 1; i++)
                 Array.Copy(BitConverter.GetBytes(Pointers[i]), 0, buffer, offset + i * 8, 8);
         }
 
+        /*
         public void To_Bytes_Explicit(byte[] buffer, int startIndex)
         {
             int key_Num = Key_Num;
@@ -192,7 +196,7 @@ namespace File_System_ES.Append
                 buffer[offset + i * 8 + 6] = tmp.byte6;
                 buffer[offset + i * 8 + 7] = tmp.byte7;
             }
-        }
+        }*/
 
         public byte[] To_Bytes()
         {
@@ -200,15 +204,15 @@ namespace File_System_ES.Append
 
             var buffer = new byte[size];
 
-            To_Bytes_In_Buffer(buffer, 0);
+            To_Bytes_In_Buffer(buffer, 0, null);
 
             return buffer;
         }
 
 
-        public static Node Create_New(int size, bool isLeaf)
+        public static Node<T> Create_New(int size, bool isLeaf)
         {
-            return new Node(size, isLeaf);
+            return new Node<T>(size, isLeaf);
         }
 
         public static int Size_In_Bytes(int size)
@@ -216,17 +220,18 @@ namespace File_System_ES.Append
             return 4 + 1 + 4 * size + 8 * (size + 1);
         }
 
-        public static Node From_Bytes(byte[] buffer, int size)
+        public static Node<T> From_Bytes(byte[] buffer, int size, ISerializer<T> serializer)
         {
             var byteCount = Size_In_Bytes(size);
 
-            var node = Node.Create_New(size, BitConverter.ToBoolean(buffer, 4));
+            var node = Create_New(size, BitConverter.ToBoolean(buffer, 4));
             var key_Num = BitConverter.ToInt32(buffer, 0);
 
             node.Key_Num = key_Num;
 
             for (int i = 0; i < key_Num; i++)
-                node.Keys[i] = BitConverter.ToInt32(buffer, 5 + 4 * i);
+                node.Keys[i] = serializer.Get_Instance(buffer, 5 + 4 * i);
+                //node.Keys[i] = BitConverter.ToInt32(buffer, 5 + 4 * i);
 
             int offset = 5 + 4 * size;
             for (int i = 0; i < key_Num + 1; i++)
@@ -237,11 +242,11 @@ namespace File_System_ES.Append
     
     }
 
-    public class Split
+    public class Split<T> where T:IComparable<T>, IEquatable<T>
     {
-        public Node Node_Left { get; set; }
-        public Node Node_Right { get; set; }
-        public int Mid_Key { get; set; }
+        public Node<T> Node_Left { get; set; }
+        public Node<T> Node_Right { get; set; }
+        public T Mid_Key { get; set; }
     }
 
 

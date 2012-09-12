@@ -8,7 +8,7 @@ namespace File_System_ES.Benchmarks
 {
     public class BPlusTree : Benchmark
     {
-        String_BPlusTree tree;
+        String_BPlusTree<int> tree;
         Stream indexStream;
 
         public BPlusTree()
@@ -34,8 +34,8 @@ namespace File_System_ES.Benchmarks
 
             var dataStream = new FileStream(dataFile, FileMode.OpenOrCreate);
 
-            var appendBpTree = new Append.BPlusTree(metadataStream, indexStream, dataStream, 20);
-            tree = new String_BPlusTree(appendBpTree);
+            var appendBpTree = new Append.BPlusTree<int>(metadataStream, indexStream, dataStream, 3, new Int_Serializer() );
+            tree = new String_BPlusTree<int>(appendBpTree);
 
             //for (int i = 0; i <= 1000000; i += 1)
             //{
@@ -97,42 +97,42 @@ namespace File_System_ES.Benchmarks
                 for (var j = i; j < i + batch; j++)
                 {
                     tree.Put(j, "text about " + j);
-                    //for (int k = i; k >= 0; k--)
-                    //    result = tree.Get(k);
+                    for (int k = i; k >= 0; k--)
+                        result = tree.Get(k);
 
-                   // result = tree.Get(j);
+                    //result = tree.Get(j);
                 }
                 tree.Commit();
                 // var usage = Count_Empty_Slots();
             }
 
 
-            // Read Only
-            //for (int i = 0; i < number_Of_Inserts; i++)
-            //{
-            //    result = tree.Get(i);
-            //}
+            ///  Read Only
+            for (int i = 0; i < number_Of_Inserts; i++)
+            {
+                result = tree.Get(i);
+            }
 
             //var inner = tree.BPlusTree as Append.BPlusTree;
             //var rgps = File_System_ES.Append.Pending_Changes._statistics_blocks_found.GroupBy(g => g).ToList();
             //int wasted = inner.Empty_Slots.Sum(s => s.Length * s.Blocks.Count);
             //var stats = inner.Empty_Slots.GroupBy(g => g.Length).ToList();
 
-            //var usage = Count_Empty_Slots();
+            var usage = Count_Empty_Slots();
         }
 
         protected File_System_ES.Append.Usage Count_Empty_Slots()
         {
             int invalid = 0;
             int valid = 0;
-            int blockSize = File_System_ES.Append.Node.Size_In_Bytes(3);
+            int blockSize = File_System_ES.Append.Node<int>.Size_In_Bytes(3);
             long position = indexStream.Position;
 
             indexStream.Seek(8, SeekOrigin.Begin);
             var buffer = new byte[blockSize];
             while (indexStream.Read(buffer, 0, buffer.Length) > 0)
             {
-                var node = File_System_ES.Append.Node.From_Bytes(buffer, 3);
+                var node = File_System_ES.Append.Node<int>.From_Bytes(buffer, 3, null);
                 if (node.IsValid)
                     valid++;
                 else
@@ -158,6 +158,25 @@ namespace File_System_ES.Benchmarks
         public override void Flush()
         {
             base.Flush(true);
+        }
+    }
+
+
+    public class Int_Serializer : File_System_ES.Append.ISerializer<int>
+    {
+        public byte[] To_Bytes(int value)
+        {
+            return BitConverter.GetBytes(value);
+        }
+
+        public int Get_Instance(byte[] value, int startIndex)
+        {
+            return BitConverter.ToInt32(value, startIndex);
+        }
+
+        public int Fixed_Size()
+        {
+            return 4;
         }
     }
 }

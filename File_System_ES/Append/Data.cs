@@ -6,21 +6,22 @@ using System.Text;
 
 namespace File_System_ES.Append
 {
-    public class Data
+    public class Data<T> where T : IComparable<T>, IEquatable<T>
     {
-        public int Key { get; set; }
+        public T Key { get; set; }
         public DateTime Timestamp { get; set; }
         public int Version { get; set; }
         public byte[] Payload { get; set; }
 
 
-        public byte[] To_Bytes()
+        public byte[] To_Bytes(ISerializer<T> serializer)
         {
             var size = 4 + 8 + 4 + 4 + Payload.Length;
             var buffer = new byte[size];
 
             Array.Copy(BitConverter.GetBytes(size), 0, buffer, 0, 4);
-            Array.Copy(BitConverter.GetBytes(Key), 0, buffer, 4, 4);
+            //Array.Copy(BitConverter.GetBytes(Key), 0, buffer, 4, 4);
+            Array.Copy(serializer.To_Bytes(Key), 0, buffer, 4, serializer.Fixed_Size());
             Array.Copy(BitConverter.GetBytes(Timestamp.Ticks), 0, buffer, 8, 8);
             Array.Copy(BitConverter.GetBytes(Version), 0, buffer, 16, 4);
             Array.Copy(Payload, 0, buffer, 20, Payload.Length);
@@ -28,7 +29,7 @@ namespace File_System_ES.Append
             return buffer;
         }
 
-        public static Data From_Bytes(Stream stream)
+        public static Data<T> From_Bytes(Stream stream, ISerializer<T> serializer)
         {
             var buffer = new byte[4];
             stream.Read(buffer, 0, 4);
@@ -37,14 +38,15 @@ namespace File_System_ES.Append
             buffer = new byte[lenght];
             stream.Read(buffer, 0, lenght);
 
-            return From_Bytes(buffer, lenght);
+            return From_Bytes(buffer, lenght, serializer);
         }
 
-        public static Data From_Bytes(byte[] buffer, int totalLenght)
+        public static Data<T> From_Bytes(byte[] buffer, int totalLenght, ISerializer<T> serializer)
         {
-            var data = new Data
+            var data = new Data<T>
             {
-                Key = BitConverter.ToInt32(buffer, 0),
+               // Key = BitConverter.ToInt32(buffer, 0),
+                Key = serializer.Get_Instance(buffer, 0),
                 Timestamp = DateTime.FromBinary(BitConverter.ToInt64(buffer, 4)),
                 Version = BitConverter.ToInt32(buffer, 12),
                 Payload = new byte[totalLenght - 20]

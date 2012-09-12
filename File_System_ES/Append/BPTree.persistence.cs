@@ -8,7 +8,7 @@ using System.Text;
 
 namespace File_System_ES.Append
 {
-    public partial class BPlusTree
+    public partial class BPlusTree<T>
     {
         private long _index_Pointer;
         private long _data_Pointer;
@@ -19,28 +19,28 @@ namespace File_System_ES.Append
         }
 
 
-        protected void Write_Node(Node node)
+        protected void Write_Node(Node<T> node)
         {
             Pending_Changes.Free_Address(node.Address);
             Pending_Changes.Append_Node(node);
         }
-        
-        protected Node Read_Node(Node parent, long address)
+
+        protected Node<T> Read_Node(Node<T> parent, long address)
         {
-            if (Pending_Changes != null)
-            {
-                var cachedNode = Pending_Changes.Last_Cached_Nodes().SingleOrDefault(n => n.Address == address);
-                if (cachedNode != null)
-                {
-                    cache_hits++;
-                    return cachedNode;
-                }
-            }
-            if (Cached_Nodes.ContainsKey(address))
-            {
-                cache_hits++;
-                return Cached_Nodes[address];
-            }
+            //if (Pending_Changes != null)
+            //{
+            //    var cachedNode = Pending_Changes.Last_Cached_Nodes().SingleOrDefault(n => n.Address == address);
+            //    if (cachedNode != null)
+            //    {
+            //        cache_hits++;
+            //        return cachedNode;
+            //    }
+            //}
+            //if (Cached_Nodes.ContainsKey(address))
+            //{
+            //    cache_hits++;
+            //    return Cached_Nodes[address];
+            //}
 
             cache_misses++;
 
@@ -55,17 +55,17 @@ namespace File_System_ES.Append
             else
                 _readMemory_Count[address] = 1;
 
-            var node = Node.From_Bytes(buffer, Size);
+            var node = Node<T>.From_Bytes(buffer, Size, Serializer);
             node.Parent = parent;
             node.Address = address;
 
-            Cached_Nodes[address] = node;
+            //Cached_Nodes[address] = node;
             return node;
         }
 
-        protected void Write_Data(byte[] value, int key, int version)
+        protected void Write_Data(byte[] value, T key, int version)
         {
-            var data = new Data 
+            var data = new Data<T>
             { 
                 Key = key, 
                 Version = version, 
@@ -76,7 +76,7 @@ namespace File_System_ES.Append
             var address = Data_Pointer();
             Data_Stream.Seek(address, SeekOrigin.Begin);
 
-            var bytes = data.To_Bytes();
+            var bytes = data.To_Bytes(Serializer);
             Data_Stream.Write(bytes, 0, bytes.Length);
 
             _data_Pointer += bytes.Length;
@@ -86,7 +86,7 @@ namespace File_System_ES.Append
         {
             Data_Stream.Seek(address, SeekOrigin.Begin);
 
-            var data = Data.From_Bytes(Data_Stream);
+            var data = Data<T>.From_Bytes(Data_Stream, Serializer);
             return data.Payload;
         }
 

@@ -8,10 +8,10 @@ using System.Text;
 
 namespace File_System_ES.Append
 {
-    public partial class BPlusTree : IBPlusTree
+    public partial class BPlusTree<T> : IBPlusTree<T> where T: IComparable<T>, IEquatable<T>
     {
-        public Node Root { get; set; }
-        Pending_Changes Pending_Changes;
+        public Node<T> Root { get; set; }
+        Pending_Changes<T> Pending_Changes;
 
         protected Stream Index_Stream { get; set; }
         protected Stream Data_Stream { get; set; }
@@ -20,7 +20,7 @@ namespace File_System_ES.Append
         protected int Size { get; set; }
 
         public List<Block_Group> Empty_Slots = new List<Block_Group>();
-        public Dictionary<long, Node> Cached_Nodes { get; set; }
+        public Dictionary<long, Node<T>> Cached_Nodes { get; set; }
 
         public Dictionary<long, int> _readMemory_Count = new Dictionary<long, int>();
         public Dictionary<long, int> _writeMemory_Count = new Dictionary<long, int>();
@@ -28,17 +28,19 @@ namespace File_System_ES.Append
         public long cache_misses;
 
         public int Block_Size { get; set; }
+        ISerializer<T> Serializer;
 
-        public BPlusTree(Stream metadataStream, Stream indexStream, Stream dataStream, int order)
+        public BPlusTree(Stream metadataStream, Stream indexStream, Stream dataStream, int order, ISerializer<T> serializer)
         {
             Size = order;
-            Block_Size = Node.Size_In_Bytes(Size);
+            Block_Size = Node<T>.Size_In_Bytes(Size);
+            Serializer = serializer;
 
             Index_Stream = indexStream;
             Data_Stream = dataStream;
             Metadata_Stream = metadataStream;
 
-            Cached_Nodes = new Dictionary<long, Node>();
+            Cached_Nodes = new Dictionary<long, Node<T>>();
 
             _index_Pointer = Math.Max(8, indexStream.Length);
             _data_Pointer = Data_Stream.Length;
@@ -54,14 +56,14 @@ namespace File_System_ES.Append
         {
             int invalid = 0;
             int valid = 0;
-            int blockSize = File_System_ES.Append.Node.Size_In_Bytes(3);
+            int blockSize = File_System_ES.Append.Node<T>.Size_In_Bytes(3);
             long position = Index_Stream.Position;
 
             Index_Stream.Seek(8, SeekOrigin.Begin);
             var buffer = new byte[blockSize];
             while (Index_Stream.Read(buffer, 0, buffer.Length) > 0)
             {
-                var node = File_System_ES.Append.Node.From_Bytes(buffer, 3);
+                var node = File_System_ES.Append.Node<T>.From_Bytes(buffer, 3, null);
                 if (node.IsValid)
                     valid++;
                 else
@@ -127,35 +129,35 @@ namespace File_System_ES.Append
                     return;
             }
             catch (Exception) { }
-            
-            Pending_Changes = new Pending_Changes(Index_Stream, Block_Size, _index_Pointer, Empty_Slots);
-            var root = Node.Create_New(Size, true);
+
+            Pending_Changes = new Pending_Changes<T>(Index_Stream, Block_Size, _index_Pointer, Empty_Slots, Serializer);
+            var root = Node<T>.Create_New(Size, true);
             Write_Node(root);
             Pending_Changes.Append_New_Root(root);
         }
 
 
-        Dictionary<long, Node> cache = new Dictionary<long, Node>();
-        public byte[] Get(int key)
+        Dictionary<long, Node<T>> cache = new Dictionary<long, Node<T>>();
+        public byte[] Get(T key)
         {
             var leaf = Find_Leaf_Node(key);
             var data = Read_Data(leaf.Get_Data_Address(key));
             return data;
         }
 
-        public void Put(int key, byte[] value)
+        public void Put(T key, byte[] value)
         {
-            Node leaf = Find_Leaf_Node(key);
+            var leaf = Find_Leaf_Node(key);
 
             var data_Address = Data_Pointer();
             Write_Data(value, key, 1);
 
             if (Pending_Changes == null)
-                Pending_Changes = new Pending_Changes(Index_Stream, Block_Size, _index_Pointer, Empty_Slots);
+                Pending_Changes = new Pending_Changes<T>(Index_Stream, Block_Size, _index_Pointer, Empty_Slots, Serializer);
 
-            Node newRoot = null;
+            Node<T> newRoot = null;
             for(int i=0; i< leaf.Key_Num; i++)
-                if (key == leaf.Keys[i])
+                if (key.Equals(leaf.Keys[i]))
                 {
                     var newLeaf = leaf.Create_New_One_Like_This();
                     newLeaf.Versions[i]++;
@@ -174,11 +176,11 @@ namespace File_System_ES.Append
             Pending_Changes.Append_New_Root(newRoot);
         }
 
-        public bool Delete(int key)
+        public bool Delete(T key)
         {
             var leaf = Find_Leaf_Node(key);
             for (int i = 0; i < leaf.Key_Num; i++)
-                if (key == leaf.Keys[i])
+                if (key.Equals(leaf.Keys[i]))
                 {
                     Delete_Key_In_Node(leaf, key);
                     long previous_Address = leaf.Address;
@@ -196,10 +198,11 @@ namespace File_System_ES.Append
 
 
 
-        protected void Delete_Key_In_Node(Node node, int key)
+        protected void Delete_Key_In_Node(Node<T> node, T key)
         {
             int x = 0;
-            while (key != node.Keys[x]) x++;
+            while (!key.Equals(node.Keys[x])) 
+                x++;
             for (int i = x; i < node.Key_Num - 1; i++)
                 node.Keys[i] = node.Keys[i + 1];
             for (int i = x + 1; i < node.Key_Num; i++)
@@ -207,12 +210,12 @@ namespace File_System_ES.Append
             node.Key_Num--;
         }
 
-        protected Node Insert_in_node(Node node, int key, long address, Node[] children = null)
+        protected Node<T> Insert_in_node(Node<T> node, T key, long address, Node<T>[] children = null)
         {
             var newNode = node.Create_New_One_Like_This();
             newNode.Insert_Key(key, address);
-            
-            Node newRoot = null;
+
+            Node<T> newRoot = null;
             if (newNode.Needs_To_Be_Splitted())
             {
                 var split = newNode.Split();
@@ -220,7 +223,8 @@ namespace File_System_ES.Append
                 if (children != null)
                     foreach (var child in children)
                     {
-                        if(child.Keys[child.Key_Num - 1] < split.Mid_Key)
+                        if (child.Keys[child.Key_Num - 1].CompareTo(split.Mid_Key) < 0)
+                        //if(child.Keys[child.Key_Num - 1] < split.Mid_Key)
                             child.Parent = split.Node_Left;
                         else
                             child.Parent = split.Node_Right;
@@ -231,7 +235,7 @@ namespace File_System_ES.Append
 
                 if (split.Node_Left.Parent == null) // if i'm splitting the root, i need a new up level
                 {
-                    var root = Node.Create_New(Size, false);
+                    var root = Node<T>.Create_New(Size, false);
                     root.Keys[0] = split.Mid_Key;
                     root.Pointers[0] = split.Node_Left.Address;
                     root.Pointers[1] = split.Node_Right.Address;
@@ -260,7 +264,7 @@ namespace File_System_ES.Append
             return newRoot;
         }
 
-        protected Node Clone_Anchestors_Of(Node node)
+        protected Node<T> Clone_Anchestors_Of(Node<T> node)
         {
             if (node.Parent == null)
                 return node;
@@ -272,22 +276,22 @@ namespace File_System_ES.Append
             return Clone_Anchestors_Of(newParent);
         }
 
-        protected Node Find_Leaf_Node(int key)
+        protected Node<T> Find_Leaf_Node(T key)
         {
-            Node node = Root;
+            var node = Root;
             if(Pending_Changes != null)
                 node = Pending_Changes.Uncommitted_Root;
 
             return Find_Leaf_Node(key, node);
         }
 
-        protected Node Find_Leaf_Node(int key, Node root)
+        protected Node<T> Find_Leaf_Node(T key, Node<T> root)
         {
             int depth = 0;
             while (!root.IsLeaf)
             {
                 for (int i = 0; i <= root.Key_Num; i++)
-                    if (i == root.Key_Num || key < root.Keys[i])
+                    if (i == root.Key_Num || key.CompareTo(root.Keys[i])< 0)
                     {
                         root = Read_Node(root, root.Pointers[i]);
                         if (!root.IsValid)

@@ -7,24 +7,27 @@ using System.Text;
 
 namespace File_System_ES.Append
 {
-    public class Pending_Changes
+    public class Pending_Changes<T> where T: IComparable<T>, IEquatable<T>
     {
         public Stream Index_Stream { get; protected set; }
         public int Block_Size { get; protected set; }
-        public Node Uncommitted_Root { get; protected set; }
+        public Node<T> Uncommitted_Root { get; protected set; }
 
         private long _index_Pointer;
         public long Get_Index_Pointer() { return _index_Pointer; }
         public List<Block_Group> Get_Empty_Slots() { return Empty_Slots; }
 
-        public Pending_Changes(Stream index_Stream, int blockSize, long index_Pointer, List<Block_Group> emptySlots)
+        ISerializer<T> Serializer;
+
+        public Pending_Changes(Stream index_Stream, int blockSize, long index_Pointer, List<Block_Group> emptySlots, ISerializer<T> serializer)
         {
             Index_Stream = index_Stream;
             Block_Size = blockSize;
+            Serializer = serializer;
 
             Freed_Empty_Slots = new List<long>();
-            Pending_Nodes = new List<Node>();
-            Nodes = new List<Node>();
+            Pending_Nodes = new List<Node<T>>();
+            Nodes = new List<Node<T>>();
             Empty_Slots = emptySlots; // TODO copy by value !
 
             _base_Address_Index = Empty_Slots.SelectMany(s => s.Blocks.Select(m => m.Value)).ToDictionary(d => d.Base_Address());
@@ -36,8 +39,8 @@ namespace File_System_ES.Append
 
         List<Block_Group> Empty_Slots;
         public List<long> Freed_Empty_Slots;
-        List<Node> Pending_Nodes;
-        List<Node> Nodes;
+        List<Node<T>> Pending_Nodes;
+        List<Node<T>> Nodes;
 
 
         public Dictionary<long, Block> _base_Address_Index = new Dictionary<long, Block>();
@@ -113,11 +116,6 @@ namespace File_System_ES.Append
 
         protected Block_Group? Find_Block_Group(int length)
         {
-            // TODO slow
-            //return Empty_Slots.Where(s => s.Length == length)
-            //        .Select(s => new Nullable<Block_Group>(s))
-            //        .DefaultIfEmpty(new Nullable<Block_Group>())
-            //        .SingleOrDefault();
             for (int i = 0; i < Empty_Slots.Count; i++)
                 if (Empty_Slots[i].Length == length)
                     return Empty_Slots[i];
@@ -147,8 +145,8 @@ namespace File_System_ES.Append
             var result = new List<Block_Usage>();
 
             var enumerator = Empty_Slots.GetEnumerator();
-            int maxPages = 2;
-            while (enumerator.MoveNext() && length > 0 )// && maxPages > 0)
+
+            while (enumerator.MoveNext() && length > 0 )
             {
                 var group = enumerator.Current;
 
@@ -158,7 +156,6 @@ namespace File_System_ES.Append
                     var block = blocks.Current;
                     result.Add(new Block_Usage(block));
                     length -= group.Length;
-                    maxPages--;
                 }
             }
 
@@ -183,7 +180,7 @@ namespace File_System_ES.Append
         }
 
 
-        protected void Update_Addresses_From(Node[] nodes, Node root, Queue<long> addresses)
+        protected void Update_Addresses_From(Node<T>[] nodes, Node<T> root, Queue<long> addresses)
         {
             root.Address = addresses.Dequeue();
             if (root.IsLeaf)
@@ -202,7 +199,7 @@ namespace File_System_ES.Append
             }
         }
 
-        protected void Update_Addresses_From_Base(Node[] nodes, Node root, ref long base_Address)
+        protected void Update_Addresses_From_Base(Node<T>[] nodes, Node<T> root, ref long base_Address)
         {
             root.Address = base_Address;
             base_Address += Block_Size;
@@ -228,14 +225,14 @@ namespace File_System_ES.Append
             if (address != 0)
                 Freed_Empty_Slots.Add(address);
         }
-        public void Append_Node(Node node)
+        public void Append_Node(Node<T> node)
         {
             Pending_Nodes.Add(node);
         }
 
         public int Appends_Count;
         public int Total_Blocks_Count;
-        public void Append_New_Root(Node root)
+        public void Append_New_Root(Node<T> root)
         {
             var blocks = Look_For_Available_Blocks(Pending_Nodes.Count * Block_Size);
             Total_Blocks_Count += blocks.Count;
@@ -252,14 +249,14 @@ namespace File_System_ES.Append
 
             Update_Addresses_From(Pending_Nodes.ToArray(), root, addressesQueue);
 
-            var nodes = new Queue<Node>(Pending_Nodes.OrderBy(d => d.Address));
+            var nodes = new Queue<Node<T>>(Pending_Nodes.OrderBy(d => d.Address));
 
             foreach (var block in blocks)
             {
                 if (nodes.Count == 0)
                     break;
 
-                var toUpdate = new List<Node>();
+                var toUpdate = new List<Node<T>>();
                 for (int j = 0; j < block.Length && nodes.Count > 0; j += Block_Size)
                 {
                     toUpdate.Add(nodes.Dequeue());
@@ -269,7 +266,7 @@ namespace File_System_ES.Append
                 int buffer_Size = toUpdate.Count * Block_Size;
                 var buffer = new byte[buffer_Size];
                 for (int i = 0; i < toUpdate.Count; i++)
-                    toUpdate[i].To_Bytes_In_Buffer(buffer, i * Block_Size);
+                    toUpdate[i].To_Bytes_In_Buffer(buffer, i * Block_Size, Serializer);
 
                 Index_Stream.Seek(block.Base_Address(), SeekOrigin.Begin);
                 Index_Stream.Write(buffer, 0, buffer.Length);
@@ -292,7 +289,7 @@ namespace File_System_ES.Append
         }
 
 
-        public IEnumerable<Node> Last_Cached_Nodes()
+        public IEnumerable<Node<T>> Last_Cached_Nodes()
         {
             return Nodes;
         }

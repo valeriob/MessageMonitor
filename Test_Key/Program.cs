@@ -16,16 +16,31 @@ namespace Test_Key
             IKey key1 = new Key { Value = BitConverter.GetBytes(int.MaxValue) };
             IKey key2 = new Key { Value = BitConverter.GetBytes(0) };
 
-            //var v1 = Guid.NewGuid();
-            //var v2 = Guid.Empty;
+            var v1 = Guid.NewGuid();
+            var v2 = Guid.Empty;
 
-            var v1 = int.MaxValue;
-            var v2 = 0;
+            //var v1 = int.MaxValue;
+            //var v2 = 0;
 
+            //var v1 = "ciao";
+            //var v2 = "ciao belli";
+
+            //var v1 = Guid.NewGuid() + "" + 123;
+            //var v2 = Guid.Empty + "" + 789654;
+            string id = "";
+            for (int i = 256; i < 512; i++)
+            {
+                id += "" + (char)i;
+            }
+
+            var utf8 = Encoding.UTF8.GetBytes(id);
+            var utf7 = Encoding.UTF7.GetBytes(id);
+            var ascii = Encoding.ASCII.GetBytes(id);
+            
             for (int i = 0; i < n; i++)
             {
                //bool value = key1.Equals(key2);
-                bool value = v1.Equals(v2);
+                var value = v1.CompareTo(v2);
             }
 
             watch.Stop();

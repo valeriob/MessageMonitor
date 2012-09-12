@@ -7,7 +7,7 @@ using System.Text;
 
 namespace File_System_ES.UpdateInPlace
 {
-    public partial class BPlusTree : IBPlusTree
+    public partial class BPlusTree
     {
         public Node Root { get; set; }
         public Node UncommittedRoot { get; set; }

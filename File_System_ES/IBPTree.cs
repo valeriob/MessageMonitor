@@ -7,10 +7,10 @@ using System.Text;
 
 namespace File_System_ES
 {
-    public interface IBPlusTree
+    public interface IBPlusTree<T>
     {
-        byte[] Get(int key);
-        void Put(int key, byte[] value);
+        byte[] Get(T key);
+        void Put(T key, byte[] value);
 
         void Flush();
         void Commit();

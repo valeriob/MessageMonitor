@@ -7,23 +7,23 @@ using System.Text;
 
 namespace File_System_ES
 {
-    public partial class String_BPlusTree 
+    public partial class String_BPlusTree<T>
     {
-        public IBPlusTree BPlusTree { get; set; }
+        public IBPlusTree<T> BPlusTree { get; set; }
 
-        public String_BPlusTree(IBPlusTree tree)
+        public String_BPlusTree(IBPlusTree<T> tree)
         {
             BPlusTree = tree;
         }
    
 
-        public string Get(int key)
+        public string Get(T key)
         {
             var bytes = BPlusTree.Get(key);
             return Encoding.UTF8.GetString(bytes);
         }
 
-        public void Put(int key, string value)
+        public void Put(T key, string value)
         {
             var bytes = Encoding.UTF8.GetBytes(value);
             BPlusTree.Put(key, bytes);
