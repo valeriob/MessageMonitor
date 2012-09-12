@@ -16,8 +16,8 @@ namespace Test_Key
             IKey key1 = new Key { Value = BitConverter.GetBytes(int.MaxValue) };
             IKey key2 = new Key { Value = BitConverter.GetBytes(0) };
 
-            int v1 = int.MaxValue;
-            int v2 = 0;
+            Guid v1 = Guid.NewGuid();
+            Guid v2 = Guid.Empty;
 
             for (int i = 0; i < n; i++)
             {
