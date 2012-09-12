@@ -33,6 +33,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Spiking", "Spiking", "{B600
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "File_System_ES", "File_System_ES\File_System_ES.csproj", "{DF05D5AA-B0BC-48ED-80CF-17584839BE81}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test_Key", "Test_Key\Test_Key.csproj", "{3E7C0D6A-AE91-4AEE-94EC-52B78602010C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -71,6 +73,10 @@ Global
 		{DF05D5AA-B0BC-48ED-80CF-17584839BE81}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DF05D5AA-B0BC-48ED-80CF-17584839BE81}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DF05D5AA-B0BC-48ED-80CF-17584839BE81}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3E7C0D6A-AE91-4AEE-94EC-52B78602010C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3E7C0D6A-AE91-4AEE-94EC-52B78602010C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3E7C0D6A-AE91-4AEE-94EC-52B78602010C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3E7C0D6A-AE91-4AEE-94EC-52B78602010C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -81,6 +87,7 @@ Global
 		{FF0EA319-3CB4-4BAA-BE41-361BB24A6B52} = {AE997B79-6EB1-40AA-A0BA-E5B551878B77}
 		{FB7B2466-902D-4D4A-A701-62BB2144D0D2} = {AE997B79-6EB1-40AA-A0BA-E5B551878B77}
 		{DF05D5AA-B0BC-48ED-80CF-17584839BE81} = {B6008042-A3B9-44AC-9165-4D170A1E38CF}
+		{3E7C0D6A-AE91-4AEE-94EC-52B78602010C} = {B6008042-A3B9-44AC-9165-4D170A1E38CF}
 	EndGlobalSection
 	GlobalSection(Performance) = preSolution
 		HasPerformanceSessions = true
