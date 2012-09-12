@@ -150,6 +150,7 @@ namespace File_System_ES.Append
         public void To_Bytes_In_Buffer(byte[] buffer, int startIndex,  ISerializer<T> serializer)
         {
             int key_Num = Key_Num;
+            int keySize = serializer.Fixed_Size();
 
             Array.Copy(BitConverter.GetBytes(key_Num), 0, buffer, startIndex, 4);
             buffer[startIndex + 4] = IsLeaf ? (byte)1 : (byte)0;
@@ -157,9 +158,9 @@ namespace File_System_ES.Append
             int offset = startIndex + 5;
             for (int i = 0; i < key_Num; i++)
                 //Array.Copy(BitConverter.GetBytes(Keys[i]), 0, buffer, offset + 4 * i, 4);
-                Array.Copy(serializer.To_Bytes(Keys[i]), 0, buffer, offset + 4 * i, serializer.Fixed_Size() );
+                Array.Copy(serializer.GetBytes(Keys[i]), 0, buffer, offset + keySize * i, keySize);
 
-            offset = startIndex + 5 + 4 * Keys.Length;
+            offset = startIndex + 5 + keySize * Keys.Length;
             for (int i = 0; i < key_Num + 1; i++)
                 Array.Copy(BitConverter.GetBytes(Pointers[i]), 0, buffer, offset + i * 8, 8);
         }
@@ -198,13 +199,13 @@ namespace File_System_ES.Append
             }
         }*/
 
-        public byte[] To_Bytes()
+        public byte[] To_Bytes(ISerializer<T> serializer)
         {
-            var size = Size_In_Bytes(Keys.Length);
+            var size = Size_In_Bytes(Keys.Length, serializer);
 
             var buffer = new byte[size];
 
-            To_Bytes_In_Buffer(buffer, 0, null);
+            To_Bytes_In_Buffer(buffer, 0, serializer);
 
             return buffer;
         }
@@ -215,14 +216,15 @@ namespace File_System_ES.Append
             return new Node<T>(size, isLeaf);
         }
 
-        public static int Size_In_Bytes(int size)
+        public static int Size_In_Bytes(int size, ISerializer<T> serializer)
         {
-            return 4 + 1 + 4 * size + 8 * (size + 1);
+            return 4 + 1 + serializer.Fixed_Size() * size + 8 * (size + 1);
         }
 
         public static Node<T> From_Bytes(byte[] buffer, int size, ISerializer<T> serializer)
         {
-            var byteCount = Size_In_Bytes(size);
+            var byteCount = Size_In_Bytes(size, serializer);
+            var keySize = serializer.Fixed_Size();
 
             var node = Create_New(size, BitConverter.ToBoolean(buffer, 4));
             var key_Num = BitConverter.ToInt32(buffer, 0);
@@ -230,10 +232,10 @@ namespace File_System_ES.Append
             node.Key_Num = key_Num;
 
             for (int i = 0; i < key_Num; i++)
-                node.Keys[i] = serializer.Get_Instance(buffer, 5 + 4 * i);
+                node.Keys[i] = serializer.Get_Instance(buffer, 5 + keySize * i);
                 //node.Keys[i] = BitConverter.ToInt32(buffer, 5 + 4 * i);
 
-            int offset = 5 + 4 * size;
+            int offset = 5 + keySize * size;
             for (int i = 0; i < key_Num + 1; i++)
                 node.Pointers[i] = BitConverter.ToInt64(buffer, offset + 8 * i);
 

@@ -33,7 +33,7 @@ namespace File_System_ES.Append
         public BPlusTree(Stream metadataStream, Stream indexStream, Stream dataStream, int order, ISerializer<T> serializer)
         {
             Size = order;
-            Block_Size = Node<T>.Size_In_Bytes(Size);
+            Block_Size = Node<T>.Size_In_Bytes(Size, serializer);
             Serializer = serializer;
 
             Index_Stream = indexStream;
@@ -52,30 +52,30 @@ namespace File_System_ES.Append
         public int commitsCount;
         public int writes;
 
-        public Usage Count_Empty_Slots()
-        {
-            int invalid = 0;
-            int valid = 0;
-            int blockSize = File_System_ES.Append.Node<T>.Size_In_Bytes(3);
-            long position = Index_Stream.Position;
+        //public Usage Count_Empty_Slots()
+        //{
+        //    int invalid = 0;
+        //    int valid = 0;
+        //    int blockSize = File_System_ES.Append.Node<T>.Size_In_Bytes(3, Serializer);
+        //    long position = Index_Stream.Position;
 
-            Index_Stream.Seek(8, SeekOrigin.Begin);
-            var buffer = new byte[blockSize];
-            while (Index_Stream.Read(buffer, 0, buffer.Length) > 0)
-            {
-                var node = File_System_ES.Append.Node<T>.From_Bytes(buffer, 3, null);
-                if (node.IsValid)
-                    valid++;
-                else
-                    invalid++;
-            }
+        //    Index_Stream.Seek(8, SeekOrigin.Begin);
+        //    var buffer = new byte[blockSize];
+        //    while (Index_Stream.Read(buffer, 0, buffer.Length) > 0)
+        //    {
+        //        var node = File_System_ES.Append.Node<T>.From_Bytes(buffer, 3, Serializer);
+        //        if (node.IsValid)
+        //            valid++;
+        //        else
+        //            invalid++;
+        //    }
 
-            int used = valid * blockSize;
-            int wasted = invalid * blockSize;
+        //    int used = valid * blockSize;
+        //    int wasted = invalid * blockSize;
 
-            Index_Stream.Seek(position, SeekOrigin.Begin);
-            return new Usage { Invalid = invalid, Valid = valid };
-        }
+        //    Index_Stream.Seek(position, SeekOrigin.Begin);
+        //    return new Usage { Invalid = invalid, Valid = valid };
+        //}
 
         public void Commit()
         {

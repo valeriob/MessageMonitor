@@ -241,6 +241,7 @@ namespace File_System_ES.Append
             var block_At_End_Of_File = new Block_Usage(new Block(_index_Pointer, int.MaxValue));
 
             blocks.Add(block_At_End_Of_File);
+            blocks = blocks.OrderBy(b => b.Base_Address()).ToList();
 
             var addressesQueue = new Queue<long>();
             foreach (var block in blocks)

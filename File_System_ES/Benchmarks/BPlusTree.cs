@@ -8,8 +8,9 @@ namespace File_System_ES.Benchmarks
 {
     public class BPlusTree : Benchmark
     {
-        String_BPlusTree<int> tree;
+        String_BPlusTree<Guid> tree;
         Stream indexStream;
+        File_System_ES.Append.ISerializer<Guid> serializer = new Guid_Serializer();
 
         public BPlusTree()
         {
@@ -34,8 +35,9 @@ namespace File_System_ES.Benchmarks
 
             var dataStream = new FileStream(dataFile, FileMode.OpenOrCreate);
 
-            var appendBpTree = new Append.BPlusTree<int>(metadataStream, indexStream, dataStream, 3, new Int_Serializer() );
-            tree = new String_BPlusTree<int>(appendBpTree);
+            var appendBpTree = new Append.BPlusTree<Guid>(metadataStream, indexStream, 
+                dataStream, 11, serializer);
+            tree = new String_BPlusTree<Guid>(appendBpTree);
 
             //for (int i = 0; i <= 1000000; i += 1)
             //{
@@ -96,55 +98,56 @@ namespace File_System_ES.Benchmarks
             {
                 for (var j = i; j < i + batch; j++)
                 {
-                    tree.Put(j, "text about " + j);
-                    for (int k = i; k >= 0; k--)
-                        result = tree.Get(k);
+                    var g = Guid.NewGuid();
+                    tree.Put(g, "text about " + j);
 
-                    //result = tree.Get(j);
+                    //result = tree.Get(g);
                 }
                 tree.Commit();
-                // var usage = Count_Empty_Slots();
+
+                //for (int k = i; k >= 0; k--)
+                //    result = tree.Get(k);
             }
 
 
             ///  Read Only
-            for (int i = 0; i < number_Of_Inserts; i++)
-            {
-                result = tree.Get(i);
-            }
+            //for (int i = 0; i < number_Of_Inserts; i++)
+            //{
+            //    result = tree.Get(i);
+            //}
 
             //var inner = tree.BPlusTree as Append.BPlusTree;
             //var rgps = File_System_ES.Append.Pending_Changes._statistics_blocks_found.GroupBy(g => g).ToList();
             //int wasted = inner.Empty_Slots.Sum(s => s.Length * s.Blocks.Count);
             //var stats = inner.Empty_Slots.GroupBy(g => g.Length).ToList();
 
-            var usage = Count_Empty_Slots();
+            //var usage = Count_Empty_Slots();
         }
 
-        protected File_System_ES.Append.Usage Count_Empty_Slots()
-        {
-            int invalid = 0;
-            int valid = 0;
-            int blockSize = File_System_ES.Append.Node<int>.Size_In_Bytes(3);
-            long position = indexStream.Position;
+        //protected File_System_ES.Append.Usage Count_Empty_Slots()
+        //{
+        //    int invalid = 0;
+        //    int valid = 0;
+        //    int blockSize = File_System_ES.Append.Node<int>.Size_In_Bytes(3, serializer);
+        //    long position = indexStream.Position;
 
-            indexStream.Seek(8, SeekOrigin.Begin);
-            var buffer = new byte[blockSize];
-            while (indexStream.Read(buffer, 0, buffer.Length) > 0)
-            {
-                var node = File_System_ES.Append.Node<int>.From_Bytes(buffer, 3, null);
-                if (node.IsValid)
-                    valid++;
-                else
-                    invalid++;
-            }
+        //    indexStream.Seek(8, SeekOrigin.Begin);
+        //    var buffer = new byte[blockSize];
+        //    while (indexStream.Read(buffer, 0, buffer.Length) > 0)
+        //    {
+        //        var node = File_System_ES.Append.Node<int>.From_Bytes(buffer, 3, null);
+        //        if (node.IsValid)
+        //            valid++;
+        //        else
+        //            invalid++;
+        //    }
 
-            int used = valid * blockSize;
-            int wasted = invalid * blockSize;
+        //    int used = valid * blockSize;
+        //    int wasted = invalid * blockSize;
 
-            indexStream.Seek(position, SeekOrigin.Begin);
-            return new File_System_ES.Append.Usage { Invalid = invalid, Valid = valid };
-        }
+        //    indexStream.Seek(position, SeekOrigin.Begin);
+        //    return new File_System_ES.Append.Usage { Invalid = invalid, Valid = valid };
+        //}
     }
 
 
@@ -164,7 +167,7 @@ namespace File_System_ES.Benchmarks
 
     public class Int_Serializer : File_System_ES.Append.ISerializer<int>
     {
-        public byte[] To_Bytes(int value)
+        public byte[] GetBytes(int value)
         {
             return BitConverter.GetBytes(value);
         }
@@ -177,6 +180,48 @@ namespace File_System_ES.Benchmarks
         public int Fixed_Size()
         {
             return 4;
+        }
+    }
+
+    public class Long_Serializer : File_System_ES.Append.ISerializer<long>
+    {
+        public byte[] GetBytes(long value)
+        {
+            return BitConverter.GetBytes(value);
+        }
+
+        public long Get_Instance(byte[] value, int startIndex)
+        {
+            return BitConverter.ToInt64(value, startIndex);
+        }
+
+        public int Fixed_Size()
+        {
+            return 8;
+        }
+    }
+
+    public class Guid_Serializer : File_System_ES.Append.ISerializer<Guid>
+    {
+        public byte[] GetBytes(Guid value)
+        {
+            return value.ToByteArray();
+        }
+
+        public Guid Get_Instance(byte[] value, int startIndex)
+        {
+            //var slice = new byte[16];
+            //Array.Copy(value, startIndex, slice, 0, 16);
+            //return new Guid(slice);
+            return new Guid(new byte[] {   value[startIndex], value[startIndex + 1], value[startIndex + 2], value[startIndex + 3],
+                                    value[startIndex + 4], value[startIndex + 5], value[startIndex + 6], value[startIndex + 7],
+                                    value[startIndex + 8], value[startIndex + 9], value[startIndex + 10], value[startIndex + 11],
+                                    value[startIndex + 12], value[startIndex + 13], value[startIndex + 14], value[startIndex + 15]});
+        }
+
+        public int Fixed_Size()
+        {
+            return 16;
         }
     }
 }

@@ -21,7 +21,7 @@ namespace File_System_ES.Append
 
             Array.Copy(BitConverter.GetBytes(size), 0, buffer, 0, 4);
             //Array.Copy(BitConverter.GetBytes(Key), 0, buffer, 4, 4);
-            Array.Copy(serializer.To_Bytes(Key), 0, buffer, 4, serializer.Fixed_Size());
+            Array.Copy(serializer.GetBytes(Key), 0, buffer, 4, serializer.Fixed_Size());
             Array.Copy(BitConverter.GetBytes(Timestamp.Ticks), 0, buffer, 8, 8);
             Array.Copy(BitConverter.GetBytes(Version), 0, buffer, 16, 4);
             Array.Copy(Payload, 0, buffer, 20, Payload.Length);

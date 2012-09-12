@@ -27,15 +27,15 @@ namespace File_System_ES.Append
 
         protected Node<T> Read_Node(Node<T> parent, long address)
         {
-            //if (Pending_Changes != null)
-            //{
-            //    var cachedNode = Pending_Changes.Last_Cached_Nodes().SingleOrDefault(n => n.Address == address);
-            //    if (cachedNode != null)
-            //    {
-            //        cache_hits++;
-            //        return cachedNode;
-            //    }
-            //}
+            if (Pending_Changes != null)
+            {
+                var cachedNode = Pending_Changes.Last_Cached_Nodes().SingleOrDefault(n => n.Address == address);
+                if (cachedNode != null)
+                {
+                    cache_hits++;
+                    return cachedNode;
+                }
+            }
             //if (Cached_Nodes.ContainsKey(address))
             //{
             //    cache_hits++;
