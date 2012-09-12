@@ -16,12 +16,15 @@ namespace Test_Key
             IKey key1 = new Key { Value = BitConverter.GetBytes(int.MaxValue) };
             IKey key2 = new Key { Value = BitConverter.GetBytes(0) };
 
-            Guid v1 = Guid.NewGuid();
-            Guid v2 = Guid.Empty;
+            //var v1 = Guid.NewGuid();
+            //var v2 = Guid.Empty;
+
+            var v1 = int.MaxValue;
+            var v2 = 0;
 
             for (int i = 0; i < n; i++)
             {
-               // bool value = key1.Equals(key2);
+               //bool value = key1.Equals(key2);
                 bool value = v1.Equals(v2);
             }
 
