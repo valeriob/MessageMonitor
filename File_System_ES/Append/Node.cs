@@ -9,7 +9,7 @@ using System.Text;
 
 namespace File_System_ES.Append
 {
-    public class Node<T> where T: IComparable<T>, IEquatable<T>
+    public class Node<T> : IDisposable where T: IComparable<T>, IEquatable<T>
     {
         public bool IsLeaf { get; set; }
 
@@ -21,9 +21,24 @@ namespace File_System_ES.Append
         public Node<T> Parent { get; set; }
         public long Address { get; set; }
 
+        Node_Factory<T> _Factory;
 
-        protected Node(int size, bool isLeaf) 
+        public void Dispose()
         {
+            Key_Num = -2;
+            Array.Clear(Keys, 0, Keys.Length);
+            Array.Clear(Pointers, 0, Pointers.Length);
+            Array.Clear(Versions, 0, Versions.Length);
+            Address = 0;
+            Parent = null;
+            IsLeaf = false;
+            _Factory.Return(this);
+            GC.SuppressFinalize(this);
+        }
+
+        public Node(Node_Factory<T> factory, int size, bool isLeaf) 
+        {
+            _Factory = factory;
             IsLeaf = isLeaf;
             Pointers = new long[size + 1];
             Keys = new T[size];
@@ -34,7 +49,7 @@ namespace File_System_ES.Append
         public void Insert_Key(T key, long address)
         {
             int x = 0;
-            while (x < Key_Num && Keys[x].CompareTo(key) < 0) //Keys[x] < key) 
+            while (x < Key_Num && Keys[x].CompareTo(key) < 0)
                 x++;
 
             for (int i = Key_Num; i > x; i--)
@@ -65,12 +80,12 @@ namespace File_System_ES.Append
             throw new Exception("this should not happen");
         }
 
-        public Split<T> Split()
+        public Node_Split_Result<T> Split(Node_Factory<T> node_Factory)
         {
             int size = Keys.Length;
 
-            var node_Left = Create_New_One_Like_This();
-            var node_Right = Create_New(Keys.Length, node_Left.IsLeaf);
+            var node_Left = node_Factory.Create_New_One_Like_This(this);
+            var node_Right = node_Factory.Create_New(Keys.Length, node_Left.IsLeaf);
 
             node_Right.Parent = node_Left.Parent;
             var mid_Key = node_Left.Keys[size / 2];
@@ -94,7 +109,7 @@ namespace File_System_ES.Append
                 mid_Key = node_Left.Keys[size / 2 + 1];
             }
 
-            return new Split<T> { Node_Left= node_Left,  Node_Right = node_Right, Mid_Key = mid_Key };
+            return new Node_Split_Result<T> { Node_Left= node_Left,  Node_Right = node_Right, Mid_Key = mid_Key };
         }
 
 
@@ -113,10 +128,12 @@ namespace File_System_ES.Append
             get { return Key_Num > 0; } 
         }
 
+ 
+   
 
         public override string ToString()
         {
-            if(Key_Num <= 0)
+            if (Key_Num <= 0)
                 return string.Format("{0} Invalid", Address);
 
             var keys = "";
@@ -124,173 +141,20 @@ namespace File_System_ES.Append
                 keys += Keys[i] + ", ";
             keys = keys.TrimEnd(' ', ',');
 
-  
+
             string root = Parent == null ? "(Root)" : "";
             if (IsLeaf)
                 return string.Format("{2} {1} Leaf : {0}", keys, root, Address);
             else
                 return string.Format("{2} {1} Node : {0}", keys, root, Address);
         }
-
-
-
-
-        public Node<T> Create_New_One_Like_This()
-        {
-            var node = Create_New(Keys.Length, IsLeaf);
-            node.Key_Num = Key_Num;
-            Array.Copy(Keys, node.Keys, Keys.Length);
-            Array.Copy(Pointers, node.Pointers, Pointers.Length);
-            Array.Copy(Versions, node.Versions, Versions.Length);
-            node.Parent = Parent;
-            node.Address = Address;
-            return node;
-        }
-
-        public void To_Bytes_In_Buffer(byte[] buffer, int startIndex,  ISerializer<T> serializer)
-        {
-            int key_Num = Key_Num;
-            int keySize = serializer.Fixed_Size();
-
-            Array.Copy(BitConverter.GetBytes(key_Num), 0, buffer, startIndex, 4);
-            buffer[startIndex + 4] = IsLeaf ? (byte)1 : (byte)0;
-
-            int offset = startIndex + 5;
-            for (int i = 0; i < key_Num; i++)
-                //Array.Copy(BitConverter.GetBytes(Keys[i]), 0, buffer, offset + 4 * i, 4);
-                Array.Copy(serializer.GetBytes(Keys[i]), 0, buffer, offset + keySize * i, keySize);
-
-            offset = startIndex + 5 + keySize * Keys.Length;
-            for (int i = 0; i < key_Num + 1; i++)
-                Array.Copy(BitConverter.GetBytes(Pointers[i]), 0, buffer, offset + i * 8, 8);
-        }
-
-        /*
-        public void To_Bytes_Explicit(byte[] buffer, int startIndex)
-        {
-            int key_Num = Key_Num;
-
-            Array.Copy(BitConverter.GetBytes(key_Num), 0, buffer, startIndex, 4);
-            buffer[startIndex + 4] = IsLeaf ? (byte)1 : (byte)0;
-
-            int offset = startIndex + 5;
-            for (int i = 0; i < key_Num; i++)
-            {
-                var tmp = new Bytes_To_Int { integer = Keys[i] };
-                buffer[offset + i * 8] = tmp.byte0;
-                buffer[offset + i * 8 + 1] = tmp.byte1;
-                buffer[offset + i * 8 + 2] = tmp.byte2;
-                buffer[offset + i * 8 + 3] = tmp.byte3;
-            }
-                
-            offset = startIndex + 5 + 4 * Keys.Length;
-
-            for (int i = 0; i < key_Num + 1; i++)
-            {
-                var tmp = new Bytes_To_Long { longint = Pointers[i]  };
-                buffer[offset + i * 8] = tmp.byte0;
-                buffer[offset + i * 8 + 1] = tmp.byte1;
-                buffer[offset + i * 8 + 2] = tmp.byte2;
-                buffer[offset + i * 8 + 3] = tmp.byte3;
-                buffer[offset + i * 8 + 4] = tmp.byte4;
-                buffer[offset + i * 8 + 5] = tmp.byte5;
-                buffer[offset + i * 8 + 6] = tmp.byte6;
-                buffer[offset + i * 8 + 7] = tmp.byte7;
-            }
-        }*/
-
-        public byte[] To_Bytes(ISerializer<T> serializer)
-        {
-            var size = Size_In_Bytes(Keys.Length, serializer);
-
-            var buffer = new byte[size];
-
-            To_Bytes_In_Buffer(buffer, 0, serializer);
-
-            return buffer;
-        }
-
-
-        public static Node<T> Create_New(int size, bool isLeaf)
-        {
-            return new Node<T>(size, isLeaf);
-        }
-
-        public static int Size_In_Bytes(int size, ISerializer<T> serializer)
-        {
-            return 4 + 1 + serializer.Fixed_Size() * size + 8 * (size + 1);
-        }
-
-        public static Node<T> From_Bytes(byte[] buffer, int size, ISerializer<T> serializer)
-        {
-            var byteCount = Size_In_Bytes(size, serializer);
-            var keySize = serializer.Fixed_Size();
-
-            var node = Create_New(size, BitConverter.ToBoolean(buffer, 4));
-            var key_Num = BitConverter.ToInt32(buffer, 0);
-
-            node.Key_Num = key_Num;
-
-            for (int i = 0; i < key_Num; i++)
-                node.Keys[i] = serializer.Get_Instance(buffer, 5 + keySize * i);
-                //node.Keys[i] = BitConverter.ToInt32(buffer, 5 + 4 * i);
-
-            int offset = 5 + keySize * size;
-            for (int i = 0; i < key_Num + 1; i++)
-                node.Pointers[i] = BitConverter.ToInt64(buffer, offset + 8 * i);
-
-            return node;
-        }
-    
     }
 
-    public class Split<T> where T:IComparable<T>, IEquatable<T>
+    public class Node_Split_Result<T> where T:IComparable<T>, IEquatable<T>
     {
         public Node<T> Node_Left { get; set; }
         public Node<T> Node_Right { get; set; }
         public T Mid_Key { get; set; }
     }
 
-
-
-    [StructLayout(LayoutKind.Explicit)]
-    struct Bytes_To_Int
-    {
-        [FieldOffset(0)]
-        public byte byte0;
-        [FieldOffset(1)]
-        public byte byte1;
-        [FieldOffset(2)]
-        public byte byte2;
-        [FieldOffset(3)]
-        public byte byte3;
-
-        [FieldOffset(0)]
-        public int integer;
-    }
-
-    [StructLayout(LayoutKind.Explicit)]
-    struct Bytes_To_Long
-    {
-        [FieldOffset(0)]
-        public byte byte0;
-        [FieldOffset(1)]
-        public byte byte1;
-        [FieldOffset(2)]
-        public byte byte2;
-        [FieldOffset(3)]
-        public byte byte3;
-
-        [FieldOffset(4)]
-        public byte byte4;
-        [FieldOffset(5)]
-        public byte byte5;
-        [FieldOffset(6)]
-        public byte byte6;
-        [FieldOffset(7)]
-        public byte byte7;
-
-        [FieldOffset(0)]
-        public long longint;
-    }
 }

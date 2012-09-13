@@ -23,6 +23,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -32,6 +33,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="CSharpTest.Net.BPlusTree">
@@ -68,17 +70,21 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Append\BPTree.Statistics.cs" />
     <Compile Include="Append\Data.cs" />
     <Compile Include="Append\ISerializable.cs" />
+    <Compile Include="Append\Node_Factory.cs" />
     <Compile Include="Append\Pending_Changes.cs" />
     <Compile Include="Append\Block.cs" />
     <Compile Include="Append\Empty_Space.cs" />
+    <Compile Include="Append\Unsafe_Utilities.cs" />
     <Compile Include="Basic_Heap.cs" />
     <Compile Include="Benchmarks\Benchmark.cs" />
     <Compile Include="Benchmarks\BPlusTree.cs" />
     <Compile Include="Benchmarks\CSharpTest_BPlusTree.cs" />
     <Compile Include="Benchmarks\Esent.cs" />
     <Compile Include="Benchmarks\File_Flush_Benchmark.cs" />
+    <Compile Include="Benchmarks\Memory_Copy.cs" />
     <Compile Include="Benchmarks\Ravendb.cs" />
     <Compile Include="Benchmarks\SqlServer.cs" />
     <Compile Include="IBPTree.cs" />

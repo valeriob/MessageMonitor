@@ -8,9 +8,9 @@ namespace File_System_ES.Benchmarks
 {
     public class BPlusTree : Benchmark
     {
-        String_BPlusTree<Guid> tree;
+        String_BPlusTree<int> tree;
         Stream indexStream;
-        File_System_ES.Append.ISerializer<Guid> serializer = new Guid_Serializer();
+        File_System_ES.Append.ISerializer<int> serializer = new Int_Serializer();
 
         public BPlusTree()
         {
@@ -29,15 +29,15 @@ namespace File_System_ES.Benchmarks
             //var dataStream = new MemoryStream();
             //var indexStream = new MyFileStream(indexFile, FileMode.OpenOrCreate);
             var metadataStream = new FileStream(metadataFile, FileMode.OpenOrCreate);
-             indexStream = new FileStream(indexFile, FileMode.OpenOrCreate);
-            //var indexStream = new FileStream(indexFile, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None, 4096,
-            //    FileOptions.WriteThrough | FileOptions.SequentialScan );
+            //indexStream = new FileStream(indexFile, FileMode.OpenOrCreate);
+            var indexStream = new FileStream(indexFile, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None, 65536,
+                FileOptions.WriteThrough | FileOptions.SequentialScan);
 
             var dataStream = new FileStream(dataFile, FileMode.OpenOrCreate);
 
-            var appendBpTree = new Append.BPlusTree<Guid>(metadataStream, indexStream, 
+            var appendBpTree = new Append.BPlusTree<int>(metadataStream, indexStream, 
                 dataStream, 11, serializer);
-            tree = new String_BPlusTree<Guid>(appendBpTree);
+            tree = new String_BPlusTree<int>(appendBpTree);
 
             //for (int i = 0; i <= 1000000; i += 1)
             //{
@@ -98,10 +98,9 @@ namespace File_System_ES.Benchmarks
             {
                 for (var j = i; j < i + batch; j++)
                 {
-                    var g = Guid.NewGuid();
-                    tree.Put(g, "text about " + j);
-
-                    //result = tree.Get(g);
+                    //var g = Guid.NewGuid();
+                    tree.Put(j, "text about " + j);
+                    //result = tree.Get(i);
                 }
                 tree.Commit();
 
@@ -124,30 +123,6 @@ namespace File_System_ES.Benchmarks
             //var usage = Count_Empty_Slots();
         }
 
-        //protected File_System_ES.Append.Usage Count_Empty_Slots()
-        //{
-        //    int invalid = 0;
-        //    int valid = 0;
-        //    int blockSize = File_System_ES.Append.Node<int>.Size_In_Bytes(3, serializer);
-        //    long position = indexStream.Position;
-
-        //    indexStream.Seek(8, SeekOrigin.Begin);
-        //    var buffer = new byte[blockSize];
-        //    while (indexStream.Read(buffer, 0, buffer.Length) > 0)
-        //    {
-        //        var node = File_System_ES.Append.Node<int>.From_Bytes(buffer, 3, null);
-        //        if (node.IsValid)
-        //            valid++;
-        //        else
-        //            invalid++;
-        //    }
-
-        //    int used = valid * blockSize;
-        //    int wasted = invalid * blockSize;
-
-        //    indexStream.Seek(position, SeekOrigin.Begin);
-        //    return new File_System_ES.Append.Usage { Invalid = invalid, Valid = valid };
-        //}
     }
 
 
@@ -177,9 +152,20 @@ namespace File_System_ES.Benchmarks
             return BitConverter.ToInt32(value, startIndex);
         }
 
-        public int Fixed_Size()
+        public int Serialized_Size_For_Single_Key_In_Bytes()
         {
             return 4;
+        }
+
+
+        public unsafe void To_Buffer(int[] values, int end_Index, byte[] buffer, int buffer_offset)
+        {
+            fixed (int* p_Pointers = &values[0])
+            fixed (byte* p_buff = &buffer[0])
+            {
+                byte* shifted = p_buff + buffer_offset;
+                File_System_ES.Append.Unsafe_Utilities.Memcpy(shifted, (byte*)p_Pointers, 8 * (end_Index + 1));
+            }
         }
     }
 
@@ -195,9 +181,20 @@ namespace File_System_ES.Benchmarks
             return BitConverter.ToInt64(value, startIndex);
         }
 
-        public int Fixed_Size()
+        public int Serialized_Size_For_Single_Key_In_Bytes()
         {
             return 8;
+        }
+
+
+        public unsafe void To_Buffer(long[] values, int end_Index, byte[] buffer, int buffer_offset)
+        {
+            fixed (long* p_Pointers = &values[0])
+            fixed (byte* p_buff = &buffer[0])
+            {
+                byte* shifted = p_buff + buffer_offset;
+                File_System_ES.Append.Unsafe_Utilities.Memcpy(shifted, (byte*)p_Pointers, 8 * (end_Index + 1));
+            }
         }
     }
 
@@ -219,9 +216,15 @@ namespace File_System_ES.Benchmarks
                                     value[startIndex + 12], value[startIndex + 13], value[startIndex + 14], value[startIndex + 15]});
         }
 
-        public int Fixed_Size()
+        public int Serialized_Size_For_Single_Key_In_Bytes()
         {
             return 16;
+        }
+
+
+        public void To_Buffer(Guid[] values, int end_Index, byte[] buffer, int buffer_offset)
+        {
+            throw new NotImplementedException();
         }
     }
 }

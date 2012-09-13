@@ -44,10 +44,9 @@ namespace File_System_ES.Append
 
             cache_misses++;
 
-            Index_Stream.Seek(address, SeekOrigin.Begin);
-
             var buffer = new byte[Block_Size];
 
+            Index_Stream.Seek(address, SeekOrigin.Begin);
             Index_Stream.Read(buffer, 0, buffer.Length);
 
             if (_readMemory_Count.ContainsKey(address))
@@ -55,7 +54,7 @@ namespace File_System_ES.Append
             else
                 _readMemory_Count[address] = 1;
 
-            var node = Node<T>.From_Bytes(buffer, Size, Serializer);
+            var node = Node_Factory.From_Bytes(buffer, Size);
             node.Parent = parent;
             node.Address = address;
 

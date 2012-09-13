@@ -9,26 +9,38 @@ namespace File_System_ES.Append
 {
     public class Pending_Changes<T> where T: IComparable<T>, IEquatable<T>
     {
-        public Stream Index_Stream { get; protected set; }
-        public int Block_Size { get; protected set; }
-        public Node<T> Uncommitted_Root { get; protected set; }
+        Node_Factory<T> Node_Factory;
+        Stream Index_Stream;
+        int Block_Size;
+        Node<T> Uncommitted_Root;
+
 
         private long _index_Pointer;
+        List<Node<T>> Nodes;
+        List<Block_Group> Empty_Slots;
+        List<long> Freed_Empty_Slots;
+        List<Node<T>> Pending_Nodes;
+
+        Dictionary<long, Block> _base_Address_Index = new Dictionary<long, Block>();
+        Dictionary<long, Block> _end_Address_Index = new Dictionary<long, Block>();
+
         public long Get_Index_Pointer() { return _index_Pointer; }
+        public IEnumerable<Node<T>> Last_Cached_Nodes() { return Nodes; }
         public List<Block_Group> Get_Empty_Slots() { return Empty_Slots; }
+        public Node<T> Get_Uncommitted_Root() { return Uncommitted_Root; }
 
-        ISerializer<T> Serializer;
 
-        public Pending_Changes(Stream index_Stream, int blockSize, long index_Pointer, List<Block_Group> emptySlots, ISerializer<T> serializer)
+        public Pending_Changes(Stream index_Stream, int blockSize, long index_Pointer, 
+            List<Block_Group> emptySlots, Node_Factory<T> node_Factory )
         {
             Index_Stream = index_Stream;
             Block_Size = blockSize;
-            Serializer = serializer;
+            Node_Factory = node_Factory;
 
             Freed_Empty_Slots = new List<long>();
             Pending_Nodes = new List<Node<T>>();
             Nodes = new List<Node<T>>();
-            Empty_Slots = emptySlots; // TODO copy by value !
+            Empty_Slots = emptySlots; // TODO copy by value !?
 
             _base_Address_Index = Empty_Slots.SelectMany(s => s.Blocks.Select(m => m.Value)).ToDictionary(d => d.Base_Address());
             _end_Address_Index = Empty_Slots.SelectMany(s => s.Blocks.Select(m => m.Value)).ToDictionary(d => d.End_Address());
@@ -37,14 +49,6 @@ namespace File_System_ES.Append
         }
 
 
-        List<Block_Group> Empty_Slots;
-        public List<long> Freed_Empty_Slots;
-        List<Node<T>> Pending_Nodes;
-        List<Node<T>> Nodes;
-
-
-        public Dictionary<long, Block> _base_Address_Index = new Dictionary<long, Block>();
-        public Dictionary<long, Block> _end_Address_Index = new Dictionary<long, Block>();
 
 
         protected void Block_Usage_Finished(Block_Usage usage_Block)
@@ -225,6 +229,7 @@ namespace File_System_ES.Append
             if (address != 0)
                 Freed_Empty_Slots.Add(address);
         }
+
         public void Append_Node(Node<T> node)
         {
             Pending_Nodes.Add(node);
@@ -232,9 +237,11 @@ namespace File_System_ES.Append
 
         public int Appends_Count;
         public int Total_Blocks_Count;
+
         public void Append_New_Root(Node<T> root)
         {
             var blocks = Look_For_Available_Blocks(Pending_Nodes.Count * Block_Size);
+            //blocks.Clear();
             Total_Blocks_Count += blocks.Count;
             Appends_Count++;
 
@@ -267,7 +274,7 @@ namespace File_System_ES.Append
                 int buffer_Size = toUpdate.Count * Block_Size;
                 var buffer = new byte[buffer_Size];
                 for (int i = 0; i < toUpdate.Count; i++)
-                    toUpdate[i].To_Bytes_In_Buffer(buffer, i * Block_Size, Serializer);
+                    Node_Factory.To_Bytes_In_Buffer(toUpdate[i], buffer, i * Block_Size);
 
                 Index_Stream.Seek(block.Base_Address(), SeekOrigin.Begin);
                 Index_Stream.Write(buffer, 0, buffer.Length);
@@ -290,10 +297,7 @@ namespace File_System_ES.Append
         }
 
 
-        public IEnumerable<Node<T>> Last_Cached_Nodes()
-        {
-            return Nodes;
-        }
+
     }
 
     public struct Block_Group

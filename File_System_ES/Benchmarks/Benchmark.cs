@@ -16,6 +16,7 @@ namespace File_System_ES.Benchmarks
             { 
               // new Ravendb(),
                new BPlusTree(),
+               //new Memory_Copy(),
               // new File_Flush_Benchmark(),
              //  new CSharpTest_BPlusTree(),
             //  new Esent(),
