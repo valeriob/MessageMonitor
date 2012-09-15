@@ -19,7 +19,6 @@ namespace File_System_ES.Append
         public int[] Versions { get; set; }
 
         public Node<T> Parent { get; set; }
-        //public int Parent_Key_Index { get; set; }
         public long Address { get; set; }
         public Node<T>[] Children { get; protected set; }
         public bool Is_Volatile { get; set; }
@@ -37,7 +36,6 @@ namespace File_System_ES.Append
             Parent = null;
             IsLeaf = false;
             Is_Volatile = true;
-            //Parent_Key_Index = 0;
             _Factory.Return(this);
             GC.SuppressFinalize(this);
         }
@@ -75,12 +73,8 @@ namespace File_System_ES.Append
             Key_Num++;
 
             if (child != null)
-            {
                 child.Parent = this;
-                //child.Parent_Key_Index = x + 1;
-            }
-            Is_Volatile = true;
-            Address = 0;
+
         }
 
         public bool Needs_To_Be_Splitted()
@@ -116,10 +110,16 @@ namespace File_System_ES.Append
                 node_Right.Keys[i] = node_Left.Keys[i + (size / 2 + 1)];
                 node_Right.Pointers[i] = node_Left.Pointers[i + (size / 2 + 1)];
                 node_Right.Children[i] = node_Left.Children[i + (size / 2 + 1)];
+               
+                if (node_Right.Children[i] != null)
+                    node_Right.Children[i].Parent = node_Right;
             }
 
             node_Right.Pointers[node_Right.Key_Num] = node_Left.Pointers[size];
-            node_Right.Children[node_Right.Key_Num] = node_Left.Children[size]; 
+            node_Right.Children[node_Right.Key_Num] = node_Left.Children[size];
+            
+            if (node_Right.Children[node_Right.Key_Num] != null)
+                node_Right.Children[node_Right.Key_Num].Parent = node_Right;
             node_Left.Key_Num = size / 2;
 
             if (node_Left.IsLeaf)

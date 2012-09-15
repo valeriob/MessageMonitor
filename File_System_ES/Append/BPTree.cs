@@ -86,7 +86,7 @@ namespace File_System_ES.Append
         {
             Index_Stream.SetLength(_index_Pointer);
             Cached_Nodes.Clear();
-            Pending_Changes = null;
+            //Pending_Changes = null;
         }
 
         private void Init()
@@ -104,7 +104,6 @@ namespace File_System_ES.Append
             }
             catch (Exception) { }
 
-            Pending_Changes = new Pending_Changes<T>(Index_Stream, Block_Size, _index_Pointer, Empty_Slots, Node_Factory);
             var root = Node_Factory.Create_New(Size, true);
             Write_Node(root);
             Pending_Changes.Append_New_Root(root);
@@ -125,9 +124,6 @@ namespace File_System_ES.Append
             var data_Address = Data_Pointer();
             Write_Data(value, key, 1);
 
-            //if (Pending_Changes == null)
-            //    Pending_Changes = new Pending_Changes<T>(Index_Stream, Block_Size, _index_Pointer, Empty_Slots, Node_Factory);
-
             Node<T> newRoot = null;
             for(int i=0; i< leaf.Key_Num; i++)
                 if (key.Equals(leaf.Keys[i]))
@@ -144,15 +140,7 @@ namespace File_System_ES.Append
                     return;
                 }
 
-            //var root = Clone_Tree_From_Root(Pending_Changes.Get_Uncommitted_Root());
-
-            //var newNode = Node_Factory.Create_New_One_Like_This(leaf);
-           
-
-            //var index_Of_Parent = leaf.Parent.Index_Of_Child(leaf);
             newRoot = Insert_in_node(leaf, key, data_Address);
-
-            Dispose_Node(leaf);
 
             Pending_Changes.Append_New_Root(newRoot);
         }
@@ -191,31 +179,24 @@ namespace File_System_ES.Append
             node.Key_Num--;
         }
 
-        protected Node<T> Insert_in_node(Node<T> newNode, T key, long address, Node<T> child = null)
+        protected Node<T> Insert_in_node(Node<T> node, T key, long address, Node<T> child = null)
         {
-            newNode.Insert_Key(key, address, child);
+            Renew_Node_And_Dispose_Space(node);
+            node.Insert_Key(key, address, child);
 
             Node<T> newRoot = null;
-            if (newNode.Needs_To_Be_Splitted())
+            if (node.Needs_To_Be_Splitted())
             {
-                var split = newNode.Split(Node_Factory);
+                var split = node.Split(Node_Factory);
 
-                foreach (var node in split.Node_Right.Children.Where(c=> c!=null))
-                    node.Parent = split.Node_Right;
-
-                //if (children != null)
-                //    foreach (var child in children)
-                //    {
-                //        if (child.Keys[child.Key_Num - 1].CompareTo(split.Mid_Key) < 0)
-                //            child.Parent = split.Node_Left;
-                //        else
-                //            child.Parent = split.Node_Right;
-                //    }
+                // Fix parent relation for moved children
+                //foreach (var descendant in split.Node_Right.Children.Where(c => c != null))
+                //    descendant.Parent = split.Node_Right;
 
                 Write_Node(split.Node_Right);
                 //Write_Node(split.Node_Left);
 
-                if (newNode.Parent == null) // if i'm splitting the root, i need a new up level
+                if (node.Parent == null) // if i'm splitting the root, i need a new up level
                 {
                     var root = Node_Factory.Create_New(Size, false);
                     root.Keys[0] = split.Mid_Key;
@@ -224,9 +205,6 @@ namespace File_System_ES.Append
 
                     root.Children[0] = split.Node_Left;
                     root.Children[1] = split.Node_Right;
-
-                    //split.Node_Left.Parent_Key_Index = 0;
-                    //split.Node_Right.Parent_Key_Index = 1;
 
                     root.Key_Num = 1;
                     split.Node_Left.Parent = root;
@@ -237,70 +215,27 @@ namespace File_System_ES.Append
                 }
                 else
                 {
-                    //var parent_Key_Index = node.Parent.Index_Of_Child(node);
-                    //node.Parent.Children[parent_Key_Index] = newNode;
-
-                    //var newParent = Node_Factory.Create_New_One_Like_This(newNode.Parent);
-                    //newParent.Children[split.Node_Left.Parent_Key_Index] = split.Node_Left;
-
-                    //newParent.Insert_Key(split.Mid_Key, split.Node_Right.Address, split.Node_Right);
-
-                    //split.Node_Left.Parent = newParent;
-                    //split.Node_Right.Parent = newParent;
                     newRoot = Insert_in_node(split.Node_Left.Parent, split.Mid_Key, 0, split.Node_Right);
                 }
             }
             else
             {
-                //if (children != null)
-                //    foreach (var child in children)
-                //        child.Parent = newNode;
+                //child.Parent = node;
+                Write_Node(node);
 
-                Write_Node(newNode);
-
-
-                //if (node.Parent != null)
-                //{
-                //    var parent_Key_Index = node.Parent.Index_Of_Child(node);
-                //    newNode.Parent.Children[parent_Key_Index] = newNode;
-                //}
-
-                //newRoot = Clone_Anchestors_Of(newNode, 0);
-
-                //while (newNode.Parent != null)
-                //{
-                //    //var index_Of_Parent = newNode.Parent.Index_Of_Child(newNode);
-                //    var newParent = Node_Factory.Create_New_One_Like_This(newNode.Parent);
-                //    newNode.Parent = newParent;
-
-                //    //newParent.Children[newNode.Parent_Key_Index] = newNode;
-
-                //    //index_Of_Parent = newNode.Parent.Index_Of_Child(newNode);
-
-                //    newNode = newParent;
-                //}
-
-                while (newNode.Parent != null)
+                while (node.Parent != null)
                 {
-                    newNode = newNode.Parent;
-                    newNode.Is_Volatile = true;
-                    newNode.Address = 0;
+                    node = node.Parent;
+                    Renew_Node_And_Dispose_Space(node);
+                    //node.Address = 0;
+                    //node.Is_Volatile = true;
                 }
 
-                newRoot = newNode;
+                newRoot = node;
             }
-
 
             return newRoot;
         }
-
-        public Node<T> Get_Root_Node(Node<T> node)
-        {
-            while (node.Parent != null)
-                node = node.Parent;
-            return node;
-        }
-
 
         public Node<T> Clone_Tree_From_Root(Node<T> node)
         {
@@ -315,26 +250,6 @@ namespace File_System_ES.Append
             }
             return newNode;
         }
-        //protected Node<T> Clone_From_Root_To_Node(Node<T> root, Node<T> node)
-        //{
-        //    var nextRoot = Node_Factory.Create_New_One_Like_This(root);
-        //}
-
-        //protected Node<T> Clone_Anchestors_Of(Node<T> node, int index_Of_Parent)
-        //{
-        //    if (node.Parent == null)
-        //        return node;
-
-        //    var newParent =  Node_Factory.Create_New_One_Like_This(node.Parent);
-        //    node.Parent = newParent;
-        //    newParent.Children[index_Of_Parent] = node;
-
-        //    Write_Node(newParent);
-        //    Dispose_Node(node.Parent);
-
-
-        //    return Clone_Anchestors_Of(newParent);
-        //}
 
         protected Node<T> Find_Leaf_Node(T key)
         {

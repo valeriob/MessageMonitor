@@ -24,11 +24,12 @@ namespace File_System_ES.Append
             Pending_Changes.Append_Node(node);
         }
 
-        List<Node<T>> disposed = new List<Node<T>>();
-        protected void Dispose_Node(Node<T> node)
+        //List<Node<T>> disposed = new List<Node<T>>();
+        protected void Renew_Node_And_Dispose_Space(Node<T> node)
         {
-            disposed.Add(node);
             Pending_Changes.Free_Address(node.Address);
+            node.Is_Volatile = true;
+            node.Address = 0;
         }
 
         protected Node<T> Read_Root(long address)
@@ -46,21 +47,6 @@ namespace File_System_ES.Append
         protected Node<T> Read_Node_From_Pointer(Node<T> parent, int key_Index)
         {
             long address = parent.Pointers[key_Index];
-
-            //if (Pending_Changes!= null)
-            //{
-            //    var cachedNode = Pending_Changes.Last_Cached_Nodes().SingleOrDefault(n => n.Address == address);
-            //    if (cachedNode != null)
-            //    {
-            //        cache_hits++;
-            //        return cachedNode;
-            //    }
-            //}
-            //if (Cached_Nodes.ContainsKey(address))
-            //{
-            //    cache_hits++;
-            //    return Cached_Nodes[address];
-            //}
 
             cache_misses++;
 
@@ -80,9 +66,7 @@ namespace File_System_ES.Append
             node.Address = address;
 
             parent.Children[key_Index] = node;
-            //node.Parent_Key_Index = key_Index;
 
-            //Cached_Nodes[address] = node;
             return node;
         }
 

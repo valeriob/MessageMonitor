@@ -128,18 +128,33 @@ namespace File_System_ES.Append
 
         protected void Fix_Block_Position_In_Groups(Block block, long old_Address, long new_Address, int old_Length, int new_Length)
         {
-            var group = Find_Block_Group(old_Length);
-            group.Value.Blocks.Remove(old_Address);
+            int index = -1;
+            for (int i = 0; i < Empty_Slots.Count; i++)
+                if (Empty_Slots[i].Length == old_Length)
+                    index = i;
 
+            var group = Empty_Slots[index];
+            
+            group.Blocks.Remove(old_Address);
+
+            if(group.Blocks.Count == 0)
+                Empty_Slots.RemoveAt(index);
             if (new_Length == 0)
                 return;
-            group = Find_Block_Group(new_Length);
-            if (group == null)
+
+            index = -1;
+            for (int i = 0; i < Empty_Slots.Count; i++)
+                if (Empty_Slots[i].Length == new_Length)
+                    index = i;
+
+            if (index == -1)
             {
-                group = new Block_Group { Length = new_Length, Blocks = new Dictionary<long,Block>() };
-                Empty_Slots.Add(group.Value);
+                group = new Block_Group { Length = new_Length, Blocks = new Dictionary<long, Block>() };
+                Empty_Slots.Add(group);
             }
-            group.Value.Blocks[new_Address] = block;
+            else
+                group = Empty_Slots[index];
+            group.Blocks[new_Address] = block;
         }
 
         protected List<Block_Usage> Look_For_Available_Blocks(int length)
@@ -153,7 +168,8 @@ namespace File_System_ES.Append
             while (enumerator.MoveNext() && length > 0 )
             {
                 var group = enumerator.Current;
-
+                if (group.Length <=  length / 10) // 5 * Block_Size)
+                    continue;
                 var blocks = group.Blocks.Values.GetEnumerator();
                 while (blocks.MoveNext() && length > 0)
                 {
@@ -250,16 +266,12 @@ namespace File_System_ES.Append
             Pending_Nodes.Add(node);
         }
 
-        public int Appends_Count;
-        public int Total_Blocks_Count;
-
         public void Append_New_Root_Old(Node<T> root)
         {
             
             var blocks = Look_For_Available_Blocks(Pending_Nodes.Count * Block_Size);
             blocks.Clear();
-            Total_Blocks_Count += blocks.Count;
-            Appends_Count++;
+
 
             var block_At_End_Of_File = new Block_Usage(new Block(_index_Pointer, int.MaxValue));
 
@@ -316,22 +328,34 @@ namespace File_System_ES.Append
 
         public void Append_New_Root(Node<T> root)
         {
-
             Uncommitted_Root = root;
         }
+
+        public int Commit_Count;
+        public int Nodes_Count;
+        public int Blocks_Count;
+        public Dictionary<int, int> Blocks_Count_By_Lenght = new Dictionary<int, int>();
 
         public Node<T> Commit(Stream indexStream)
         {
             var pending_Nodes = new List<Node<T>>();
-            var all_nodes = new List<Node<T>>();
 
             Find_All_Pending_Nodes_From(pending_Nodes, Uncommitted_Root);
-            Find_All_Pending_Nodes_From(all_nodes, Uncommitted_Root, false);
-            
-            Add_Block_Address_To_Available_Space();
 
+            int neededBytes = Block_Size * pending_Nodes.Count;
             var blocks = new List<Block_Usage>();
-            Total_Blocks_Count += blocks.Count;
+            blocks = Look_For_Available_Blocks(neededBytes);
+            Blocks_Count += blocks.Count;
+            Nodes_Count += pending_Nodes.Count;
+            Commit_Count++;
+
+            foreach (var block in blocks)
+            {
+                if (Blocks_Count_By_Lenght.ContainsKey(block.Length))
+                    Blocks_Count_By_Lenght[block.Length]++;
+                else
+                    Blocks_Count_By_Lenght[block.Length] = 1;
+            }
 
             var block_At_End_Of_File = new Block_Usage(new Block(_index_Pointer, int.MaxValue));
 
@@ -383,8 +407,10 @@ namespace File_System_ES.Append
             Nodes.Clear();
             Nodes.AddRange(Pending_Nodes);
             Pending_Nodes.Clear();
-
             Index_Stream.Flush();
+
+            Add_Block_Address_To_Available_Space();
+            Freed_Empty_Slots.Clear();
 
             var newRoot = Node_Factory.Create_New_One_Like_This(Uncommitted_Root);
             for (int i = 0; i < newRoot.Key_Num + 1; i++)
