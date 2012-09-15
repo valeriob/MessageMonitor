@@ -21,6 +21,7 @@ namespace File_System_ES.Append
             if (nodes.TryDequeue(out node))
             {
                 node.IsLeaf = isLeaf;
+                node.Is_Volatile = true;
                 return node;
             }
 
@@ -104,6 +105,7 @@ namespace File_System_ES.Append
             Array.Copy(source.Keys, node.Keys, source.Keys.Length);
             Array.Copy(source.Pointers, node.Pointers, source.Pointers.Length);
             Array.Copy(source.Versions, node.Versions, source.Versions.Length);
+            Array.Copy(source.Children, node.Children, source.Children.Length);
             node.Parent = source.Parent;
             node.Address = source.Address;
             return node;

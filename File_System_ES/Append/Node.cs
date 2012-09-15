@@ -19,7 +19,10 @@ namespace File_System_ES.Append
         public int[] Versions { get; set; }
 
         public Node<T> Parent { get; set; }
+        //public int Parent_Key_Index { get; set; }
         public long Address { get; set; }
+        public Node<T>[] Children { get; protected set; }
+        public bool Is_Volatile { get; set; }
 
         Node_Factory<T> _Factory;
 
@@ -29,9 +32,12 @@ namespace File_System_ES.Append
             Array.Clear(Keys, 0, Keys.Length);
             Array.Clear(Pointers, 0, Pointers.Length);
             Array.Clear(Versions, 0, Versions.Length);
+            Array.Clear(Children, 0, Children.Length);
             Address = 0;
             Parent = null;
             IsLeaf = false;
+            Is_Volatile = true;
+            //Parent_Key_Index = 0;
             _Factory.Return(this);
             GC.SuppressFinalize(this);
         }
@@ -43,10 +49,12 @@ namespace File_System_ES.Append
             Pointers = new long[size + 1];
             Keys = new T[size];
             Versions = new int[size];
+            Children = new Node<T>[size + 1];
+            Is_Volatile = true;
         }
 
 
-        public void Insert_Key(T key, long address)
+        public void Insert_Key(T key, long address, Node<T> child)
         {
             int x = 0;
             while (x < Key_Num && Keys[x].CompareTo(key) < 0)
@@ -56,11 +64,23 @@ namespace File_System_ES.Append
                 Keys[i] = Keys[i - 1];
 
             for (int i = Key_Num + 1; i > x + 1; i--)
+            {
                 Pointers[i] = Pointers[i - 1];
+                Children[i] = Children[i - 1];
+            }
 
             Keys[x] = key;
             Pointers[x + 1] = address;
+            Children[x + 1] = child;
             Key_Num++;
+
+            if (child != null)
+            {
+                child.Parent = this;
+                //child.Parent_Key_Index = x + 1;
+            }
+            Is_Volatile = true;
+            Address = 0;
         }
 
         public bool Needs_To_Be_Splitted()
@@ -84,7 +104,7 @@ namespace File_System_ES.Append
         {
             int size = Keys.Length;
 
-            var node_Left = node_Factory.Create_New_One_Like_This(this);
+            var node_Left = this;
             var node_Right = node_Factory.Create_New(Keys.Length, node_Left.IsLeaf);
 
             node_Right.Parent = node_Left.Parent;
@@ -95,15 +115,18 @@ namespace File_System_ES.Append
             {
                 node_Right.Keys[i] = node_Left.Keys[i + (size / 2 + 1)];
                 node_Right.Pointers[i] = node_Left.Pointers[i + (size / 2 + 1)];
+                node_Right.Children[i] = node_Left.Children[i + (size / 2 + 1)];
             }
 
-            node_Right.Pointers[node_Right.Key_Num] = node_Left.Pointers[size]; 
+            node_Right.Pointers[node_Right.Key_Num] = node_Left.Pointers[size];
+            node_Right.Children[node_Right.Key_Num] = node_Left.Children[size]; 
             node_Left.Key_Num = size / 2;
 
             if (node_Left.IsLeaf)
             {
                 node_Left.Key_Num++;
                 node_Right.Pointers[0] = node_Left.Pointers[0];
+                node_Right.Children[0] = node_Left.Children[0];
 
                 node_Left.Pointers[0] = node_Right.Address;  //TODO double linked list
                 mid_Key = node_Left.Keys[size / 2 + 1];
@@ -128,29 +151,46 @@ namespace File_System_ES.Append
             get { return Key_Num > 0; } 
         }
 
- 
-   
+        public int Index_Of_Child(Node<T> child)
+        {
+            for (int i = 0; i < Key_Num + 1; i++)
+                if (Children[i] == child)
+                    return i;
+            throw new Exception("nodes are not parent-child related");
+        }
 
+
+        public string Print_Keys()
+        {
+            var keys = "";
+            for (int i = 0; i < Key_Num; i++)
+                keys += Keys[i] + ", ";
+            keys = keys.TrimEnd(' ', ',');
+            return keys;
+        }
         public override string ToString()
         {
             if (Key_Num <= 0)
                 return string.Format("{0} Invalid", Address);
 
-            var keys = "";
-            for (int i = 0; i < Key_Num; i++)
-                keys += Keys[i] + ", ";
-            keys = keys.TrimEnd(' ', ',');
-
+            var keys = Print_Keys();
 
             string root = Parent == null ? "(Root)" : "";
             if (IsLeaf)
                 return string.Format("{2} {1} Leaf : {0}", keys, root, Address);
             else
-                return string.Format("{2} {1} Node : {0}", keys, root, Address);
+            {
+                string children = "";
+                for (int i = 0; i < Key_Num + 1; i++)
+                    children += " { "+Children[i].Print_Keys() + " } , ";
+                children = children.TrimEnd(',', ' ');
+
+                return string.Format("{2} {1} Node : {0}.  Children : [ {3} ]", keys, root, Address, children);
+            }
         }
     }
 
-    public class Node_Split_Result<T> where T:IComparable<T>, IEquatable<T>
+    public struct Node_Split_Result<T> where T:IComparable<T>, IEquatable<T>
     {
         public Node<T> Node_Left { get; set; }
         public Node<T> Node_Right { get; set; }

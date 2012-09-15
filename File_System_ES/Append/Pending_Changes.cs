@@ -183,25 +183,40 @@ namespace File_System_ES.Append
             _end_Address_Index[block.End_Address()] = block;
         }
 
-
-        protected void Update_Addresses_From(Node<T>[] nodes, Node<T> root, Queue<long> addresses)
+        protected void Update_Addresses_From(Node<T> root, Queue<long> addresses)
         {
-            root.Address = addresses.Dequeue();
+            if(root.Is_Volatile)
+                root.Address = addresses.Dequeue();
             if (root.IsLeaf)
                 return;
 
-            for (int i = 0; i < nodes.Length; i++)
+            for (int i = 0; i < root.Key_Num + 1; i++)
             {
-                if (nodes[i].Parent != root)
+                if (root.Children[i] == null || !root.Children[i].Is_Volatile)
                     continue;
 
-                var old_Child_Address = nodes[i].Address;
-
-                Update_Addresses_From(nodes, nodes[i], addresses);
-
-                root.Update_Child_Address(old_Child_Address, nodes[i].Address);
+                Update_Addresses_From(root.Children[i], addresses);
+                root.Pointers[i] = root.Children[i].Address;
             }
         }
+        //protected void Update_Addresses_From(Node<T>[] nodes, Node<T> root, Queue<long> addresses)
+        //{
+        //    root.Address = addresses.Dequeue();
+        //    if (root.IsLeaf)
+        //        return;
+
+        //    for (int i = 0; i < nodes.Length; i++)
+        //    {
+        //        if (nodes[i].Parent != root)
+        //            continue;
+
+        //        var old_Child_Address = nodes[i].Address;
+
+        //        Update_Addresses_From(nodes, nodes[i], addresses);
+
+        //        root.Update_Child_Address(old_Child_Address, nodes[i].Address);
+        //    }
+        //}
 
         protected void Update_Addresses_From_Base(Node<T>[] nodes, Node<T> root, ref long base_Address)
         {
@@ -238,10 +253,11 @@ namespace File_System_ES.Append
         public int Appends_Count;
         public int Total_Blocks_Count;
 
-        public void Append_New_Root(Node<T> root)
+        public void Append_New_Root_Old(Node<T> root)
         {
+            
             var blocks = Look_For_Available_Blocks(Pending_Nodes.Count * Block_Size);
-            //blocks.Clear();
+            blocks.Clear();
             Total_Blocks_Count += blocks.Count;
             Appends_Count++;
 
@@ -255,7 +271,7 @@ namespace File_System_ES.Append
                 for (int i = 0; i < block.Length && Pending_Nodes.Count > addressesQueue.Count; i += Block_Size)
                     addressesQueue.Enqueue(block.Base_Address() + i);
 
-            Update_Addresses_From(Pending_Nodes.ToArray(), root, addressesQueue);
+            Update_Addresses_From(root, addressesQueue);
 
             var nodes = new Queue<Node<T>>(Pending_Nodes.OrderBy(d => d.Address));
 
@@ -298,6 +314,109 @@ namespace File_System_ES.Append
 
 
 
+        public void Append_New_Root(Node<T> root)
+        {
+
+            Uncommitted_Root = root;
+        }
+
+        public Node<T> Commit(Stream indexStream)
+        {
+            var pending_Nodes = new List<Node<T>>();
+            var all_nodes = new List<Node<T>>();
+
+            Find_All_Pending_Nodes_From(pending_Nodes, Uncommitted_Root);
+            Find_All_Pending_Nodes_From(all_nodes, Uncommitted_Root, false);
+            
+            Add_Block_Address_To_Available_Space();
+
+            var blocks = new List<Block_Usage>();
+            Total_Blocks_Count += blocks.Count;
+
+            var block_At_End_Of_File = new Block_Usage(new Block(_index_Pointer, int.MaxValue));
+
+            blocks.Add(block_At_End_Of_File);
+            blocks = blocks.OrderBy(b => b.Base_Address()).ToList();
+
+            var addressesQueue = new Queue<long>();
+            foreach (var block in blocks)
+                for (int i = 0; i < block.Length && pending_Nodes.Count > addressesQueue.Count; i += Block_Size)
+                    addressesQueue.Enqueue(block.Base_Address() + i);
+
+            Update_Addresses_From( Uncommitted_Root, addressesQueue);
+
+            var nodes = new Queue<Node<T>>(pending_Nodes.OrderBy(d => d.Address));
+
+            foreach (var block in blocks)
+            {
+                if (nodes.Count == 0)
+                    break;
+
+                var toUpdate = new List<Node<T>>();
+                for (int j = 0; j < block.Length && nodes.Count > 0; j += Block_Size)
+                {
+                    toUpdate.Add(nodes.Dequeue());
+                    block.Use(Block_Size);
+                }
+
+                int buffer_Size = toUpdate.Count * Block_Size;
+                var buffer = new byte[buffer_Size];
+                for (int i = 0; i < toUpdate.Count; i++)
+                    Node_Factory.To_Bytes_In_Buffer(toUpdate[i], buffer, i * Block_Size);
+
+                Index_Stream.Seek(block.Base_Address(), SeekOrigin.Begin);
+                Index_Stream.Write(buffer, 0, buffer.Length);
+            }
+
+            foreach (var block in blocks)
+            {
+                if (block == block_At_End_Of_File)
+                    _index_Pointer = block.Base_Address() + block.Used_Length;
+                else
+                    Block_Usage_Finished(block);
+            }
+
+            foreach (var node in pending_Nodes)
+                node.Is_Volatile = false;
+
+            Index_Stream.Flush();
+            Nodes.Clear();
+            Nodes.AddRange(Pending_Nodes);
+            Pending_Nodes.Clear();
+
+            Index_Stream.Flush();
+
+            var newRoot = Node_Factory.Create_New_One_Like_This(Uncommitted_Root);
+            for (int i = 0; i < newRoot.Key_Num + 1; i++)
+                newRoot.Children[i] = null;
+            return newRoot;
+        }
+
+
+        protected void Find_All_Pending_Nodes_From(List<Node<T>> nodes, Node<T> root, bool only_Volatile_Nodes = true)
+        {
+            if(root.Is_Volatile && only_Volatile_Nodes || ! only_Volatile_Nodes)
+                nodes.Add(root);
+            for (int i = 0; i < root.Key_Num + 1; i++)
+            {
+                var child = root.Children[i];
+                if (child == null || (!child.Is_Volatile && only_Volatile_Nodes))
+                    continue;
+
+                Find_All_Pending_Nodes_From(nodes, child);
+            }
+        }
+
+        internal void Clean_Root()
+        {
+            Uncommitted_Root = null;
+            // dispose nodes
+        }
+
+        internal bool Has_Pending_Changes()
+        {
+            return Uncommitted_Root != null;
+        }
     }
 
     public struct Block_Group

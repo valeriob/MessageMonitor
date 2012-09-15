@@ -30,7 +30,7 @@ namespace File_System_ES.Benchmarks
             //var indexStream = new MyFileStream(indexFile, FileMode.OpenOrCreate);
             var metadataStream = new FileStream(metadataFile, FileMode.OpenOrCreate);
             //indexStream = new FileStream(indexFile, FileMode.OpenOrCreate);
-            var indexStream = new FileStream(indexFile, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None, 65536,
+            indexStream = new FileStream(indexFile, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None, 16384,
                 FileOptions.WriteThrough | FileOptions.SequentialScan);
 
             var dataStream = new FileStream(dataFile, FileMode.OpenOrCreate);
@@ -101,10 +101,12 @@ namespace File_System_ES.Benchmarks
                     //var g = Guid.NewGuid();
                     tree.Put(j, "text about " + j);
                     //result = tree.Get(i);
+                    //for (int k = j; k >= 0; k--)
+                    //    result = tree.Get(k);
                 }
                 tree.Commit();
 
-                //for (int k = i; k >= 0; k--)
+                //for (int k = i + batch - 1; k >= 0; k--)
                 //    result = tree.Get(k);
             }
 
