@@ -11,3 +11,5 @@ packages/
 *.vspx
 *.vsp
 *.psess
+_NCrunch_MessageMonitor*/
+*.ncrunchproject
