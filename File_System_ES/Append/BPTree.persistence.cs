@@ -46,10 +46,21 @@ namespace File_System_ES.Append
 
         protected Node<T> Read_Node_From_Pointer(Node<T> parent, int key_Index)
         {
-            long address = parent.Pointers[key_Index];
+             long address = parent.Pointers[key_Index];
+             
+             //var node = Cache.Get(address);
+             //node = Node_Factory.Create_New_One_Like_This(node);
+            
+            var node = Read_Node(address);
+             node.Is_Volatile = false;
+             node.Parent = parent;
+             node.Address = address;
+             parent.Children[key_Index] = node;
+             return node;
+        }
 
-            cache_misses++;
-
+        protected Node<T> Read_Node(long address)
+        {
             var buffer = new byte[Block_Size];
 
             Index_Stream.Seek(address, SeekOrigin.Begin);
@@ -60,15 +71,22 @@ namespace File_System_ES.Append
             else
                 _readMemory_Count[address] = 1;
 
-            var node = Node_Factory.From_Bytes(buffer, Size);
-            node.Is_Volatile = false;
-            node.Parent = parent;
-            node.Address = address;
-
-            parent.Children[key_Index] = node;
-
-            return node;
+            return Node_Factory.From_Bytes(buffer, Size);
         }
+
+        //protected Node<T> Read_Node_From_Pointer(Node<T> parent, int key_Index)
+        //{
+        //    long address = parent.Pointers[key_Index];
+
+        //    var node = Read_Node(address);
+        //    node.Is_Volatile = false;
+        //    node.Parent = parent;
+        //    node.Address = address;
+
+        //    parent.Children[key_Index] = node;
+
+        //    return node;
+        //}
 
         protected void Write_Data(byte[] value, T key, int version)
         {

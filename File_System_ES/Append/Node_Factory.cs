@@ -34,6 +34,36 @@ namespace File_System_ES.Append
                 nodes.Enqueue(node);
         }
 
+        unsafe public Node<T> From_Bytes_Unsafe(byte[] buffer, int size)
+        {
+            var byteCount = Size_In_Bytes(size);
+            var keySize = Serializer.Serialized_Size_For_Single_Key_In_Bytes();
+
+            int key_Num;
+            fixed (byte* p_buff = &buffer[0])
+            {
+                byte* shifted = p_buff ;
+                Unsafe_Utilities.Memcpy(shifted, (byte*)&key_Num, 4);
+            }
+
+            var node = Create_New(size, buffer[4] == 1);
+           
+            node.Key_Num = key_Num;
+
+            node.Keys = Serializer.Get_Instances(buffer, 5, size); 
+
+            int offset = 5 + keySize * size;
+
+            fixed (long* p_Pointers = &node.Pointers[0])
+            fixed (byte* p_buff = &buffer[0])
+            {
+                byte* shifted = p_buff + offset;
+                Unsafe_Utilities.Memcpy((byte*)p_Pointers, shifted, 8 * (key_Num + 1));
+            }
+
+            return node;
+        }
+
         public Node<T> From_Bytes(byte[] buffer, int size)
         {
             var byteCount = Size_In_Bytes(size);

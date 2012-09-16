@@ -36,17 +36,8 @@ namespace File_System_ES.Benchmarks
             var dataStream = new FileStream(dataFile, FileMode.OpenOrCreate);
 
             var appendBpTree = new Append.BPlusTree<int>(metadataStream, indexStream, 
-                dataStream, 11, serializer);
+                dataStream, 128, serializer);
             tree = new String_BPlusTree<int>(appendBpTree);
-
-            //for (int i = 0; i <= 1000000; i += 1)
-            //{
-            //    for (var j = i; j < i + 1; j++)
-            //    {
-            //        tree.Put(j, "text about " + j);
-            //    }
-            //    tree.Commit();
-            //}
         }
 
 
@@ -55,18 +46,17 @@ namespace File_System_ES.Benchmarks
             string result;
 
             /// Random
-
-            var random = new Random();
-            for (int i = 0; i <= number_Of_Inserts; i += batch)
-            {
-                for (var j = i; j < i + batch; j++)
-                {
-                    int value = random.Next();
-                    tree.Put(value, "text about " + value);
-                    result = tree.Get(value);
-                }
-                tree.Commit();
-            }
+            //var random = new Random();
+            //for (int i = 0; i <= number_Of_Inserts; i += batch)
+            //{
+            //    for (var j = i; j < i + batch; j++)
+            //    {
+            //        int value = random.Next();
+            //        tree.Put(value, "text about " + value);
+            //        result = tree.Get(value);
+            //    }
+            //    tree.Commit();
+            //}
 
             //int count = number_Of_Inserts;
             //var random = new Random();
@@ -94,21 +84,21 @@ namespace File_System_ES.Benchmarks
             //    tree.Commit();
             //}
 
-            //for (int i = 0; i < number_Of_Inserts; i += batch)
-            //{
-            //    for (var j = i; j < i + batch; j++)
-            //    {
-            //        //var g = Guid.NewGuid();
-            //        tree.Put(j, "text about " + j);
-            //        //result = tree.Get(i);
-            //        for (int k = j; k >= 0; k--)
-            //            result = tree.Get(k);
-            //    }
-            //    tree.Commit();
+            for (int i = 0; i < number_Of_Inserts; i += batch)
+            {
+                for (var j = i; j < i + batch; j++)
+                {
+                    //var g = Guid.NewGuid();
+                    tree.Put(j, "text about " + j);
+                    //result = tree.Get(i);
+                    //for (int k = j; k >= 0; k--)
+                    //    result = tree.Get(k);
+                }
+                tree.Commit();
 
-            //    for (int k = i + batch - 1; k >= 0; k--)
-            //        result = tree.Get(k);
-            //}
+                //for (int k = i + batch - 1; k >= 0; k--)
+                //    result = tree.Get(k);
+            }
 
 
             ///  Read Only
@@ -169,6 +159,19 @@ namespace File_System_ES.Benchmarks
                 File_System_ES.Append.Unsafe_Utilities.Memcpy(shifted, (byte*)p_Pointers, 8 * (end_Index + 1));
             }
         }
+
+
+        unsafe public int[] Get_Instances(byte[] value, int startIndex, int length)
+        {
+            int[] result = new int[length];
+            fixed (int* p_Pointers = &result[0])
+            fixed (byte* p_buff = &value[0])
+            {
+                byte* shifted = p_buff + startIndex;
+                File_System_ES.Append.Unsafe_Utilities.Memcpy(shifted, (byte*)p_Pointers, 4 * length);
+            }
+            return result;
+        }
     }
 
     public class Long_Serializer : File_System_ES.Append.ISerializer<long>
@@ -198,6 +201,12 @@ namespace File_System_ES.Benchmarks
                 File_System_ES.Append.Unsafe_Utilities.Memcpy(shifted, (byte*)p_Pointers, 8 * (end_Index + 1));
             }
         }
+
+
+        public long[] Get_Instances(byte[] value, int startIndex, int length)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     public class Guid_Serializer : File_System_ES.Append.ISerializer<Guid>
@@ -225,6 +234,12 @@ namespace File_System_ES.Benchmarks
 
 
         public void To_Buffer(Guid[] values, int end_Index, byte[] buffer, int buffer_offset)
+        {
+            throw new NotImplementedException();
+        }
+
+
+        public Guid[] Get_Instances(byte[] value, int startIndex, int length)
         {
             throw new NotImplementedException();
         }

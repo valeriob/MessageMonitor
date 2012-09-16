@@ -25,7 +25,7 @@ namespace File_System_ES.Append
         public int Block_Size { get; protected set; }
         ISerializer<T> Serializer;
         Node_Factory<T> Node_Factory;
-
+        Cache_LRU<long, Node<T>> Cache;
 
         public BPlusTree(Stream metadataStream, Stream indexStream, Stream dataStream, int order, ISerializer<T> serializer)
         {
@@ -33,6 +33,7 @@ namespace File_System_ES.Append
 
             Serializer = serializer;
             Node_Factory = new Node_Factory<T>(serializer);
+            Cache = new Cache_LRU<long, Node<T>>((k) => Read_Node(k));
             Block_Size = Node_Factory.Size_In_Bytes(Size);
 
             Index_Stream = indexStream;
@@ -50,6 +51,9 @@ namespace File_System_ES.Append
 
         public void Commit()
         {
+            foreach (var address in Pending_Changes.Freed_Empty_Slots)
+                Cache.Invalidate(address);
+
             var newRoot = Pending_Changes.Commit(Index_Stream);
 
             writes++;

@@ -18,7 +18,7 @@ namespace File_System_ES.Append
         private long _index_Pointer;
         List<Node<T>> Nodes;
         List<Block_Group> Empty_Slots;
-        List<long> Freed_Empty_Slots;
+        public List<long> Freed_Empty_Slots;
         List<Node<T>> Pending_Nodes;
 
         Dictionary<long, Block> _base_Address_Index = new Dictionary<long, Block>();
@@ -168,8 +168,8 @@ namespace File_System_ES.Append
             while (enumerator.MoveNext() && length > 0 )
             {
                 var group = enumerator.Current;
-                if (group.Length <=  length / 10) // 5 * Block_Size)
-                    continue;
+              //  if (group.Length <=  length / 10) // 5 * Block_Size)
+               //     continue;
                 var blocks = group.Blocks.Values.GetEnumerator();
                 while (blocks.MoveNext() && length > 0)
                 {
@@ -344,7 +344,8 @@ namespace File_System_ES.Append
 
             int neededBytes = Block_Size * pending_Nodes.Count;
             var blocks = new List<Block_Usage>();
-            blocks = Look_For_Available_Blocks(neededBytes);
+            //blocks = Look_For_Available_Blocks(neededBytes);
+            blocks = new List<Block_Usage>();
             Blocks_Count += blocks.Count;
             Nodes_Count += pending_Nodes.Count;
             Commit_Count++;
@@ -409,7 +410,7 @@ namespace File_System_ES.Append
             Pending_Nodes.Clear();
             Index_Stream.Flush();
 
-            Add_Block_Address_To_Available_Space();
+           // Add_Block_Address_To_Available_Space();
             Freed_Empty_Slots.Clear();
 
             var newRoot = Node_Factory.Create_New_One_Like_This(Uncommitted_Root);

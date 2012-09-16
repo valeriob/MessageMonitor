@@ -12,7 +12,7 @@ namespace File_System_ES
     {
         static void Main(string[] args)
         {
-            var results = Benchmarks.Benchmark.RunAll(100000, 10);
+            var results = Benchmarks.Benchmark.RunAll(100000, 1);
             foreach (var result in results)
             {
                 Console.WriteLine(result.ToString());
