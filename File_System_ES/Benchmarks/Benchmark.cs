@@ -10,6 +10,8 @@ namespace File_System_ES.Benchmarks
 
         public abstract void Run(int count, int batch);
 
+        public virtual void Prepare(int count, int batch) { }
+
         public static IEnumerable<Result> RunAll(int count, int? batch = null)
         {
             var benchmarks = new Benchmark[] 

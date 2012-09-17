@@ -10,7 +10,7 @@ namespace File_System_ES.Append
 {
     public class Cache_LRU<TKey, TValue>
     {
-        Func<TKey, TValue> _fetch;
+        //Func<TKey, TValue> _fetch;
         Dictionary<TKey, Cache_Line<TKey, TValue>> _store;
         int Max_Size;
         int Batch;
@@ -20,9 +20,10 @@ namespace File_System_ES.Append
         public int Hits { get; protected set; }
         public int Misses { get; protected set; }
 
-        public Cache_LRU(Func<TKey, TValue> fetchValue)
+        //public Cache_LRU(Func<TKey, TValue> fetchValue)
+        public Cache_LRU()
         {
-            _fetch = fetchValue;
+        //    _fetch = fetchValue;
             _store = new Dictionary<TKey, Cache_Line<TKey, TValue>>();
             Max_Size = 1024;
             Batch = 50;
@@ -32,10 +33,7 @@ namespace File_System_ES.Append
 
         public TValue Get(TKey key)
         {
-            if (cleaning)
-                return _fetch(key);
-
-            if (_store.ContainsKey(key))
+            if (!cleaning && _store.ContainsKey(key))
             {
                 Hits++;
                 var value = _store[key];
@@ -46,11 +44,19 @@ namespace File_System_ES.Append
             else
             {
                 Misses++;
-                var value = _fetch(key);
-                _store[key] = new Cache_Line<TKey, TValue> { Added = DateTime.Now, Key = key, Value = value, Last_Used = DateTime.Now, Used_Count = 1 };
-                Evict_If_Necessary();
-                return value;
+                //var value = _fetch(key);
+                //_store[key] = new Cache_Line<TKey, TValue> { Added = DateTime.Now, Key = key, Value = value, Last_Used = DateTime.Now, Used_Count = 1 };
+                //Evict_If_Necessary();
+                //return value;
             }
+
+            return default(TValue);
+        }
+
+        public void Put(TKey key, TValue value)
+        {
+            _store[key] = new Cache_Line<TKey, TValue> { Added = DateTime.Now, Key = key, Value = value, Last_Used = DateTime.Now, Used_Count = 1 };
+            Evict_If_Necessary();
         }
 
         public void Invalidate(TKey key)

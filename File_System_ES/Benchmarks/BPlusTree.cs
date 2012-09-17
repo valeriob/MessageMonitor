@@ -1,4 +1,5 @@
-﻿using System;
+﻿using File_System_ES.Append.Serializers;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -36,27 +37,42 @@ namespace File_System_ES.Benchmarks
             var dataStream = new FileStream(dataFile, FileMode.OpenOrCreate);
 
             var appendBpTree = new Append.BPlusTree<int>(metadataStream, indexStream, 
-                dataStream, 128, serializer);
+                dataStream, 3, serializer);
             tree = new String_BPlusTree<int>(appendBpTree);
+
         }
 
+        public override void Prepare(int count, int batch)
+        {
+            return;
+
+            for (int i = 0; i < count; i += batch)
+            {
+                for (var j = i; j < i + batch; j++)
+                {
+                    var g = Guid.NewGuid();
+                    tree.Put(j, "text about " + j);
+                }
+                tree.Commit();
+            }
+        }
 
         public override void Run(int number_Of_Inserts, int batch)
         {
             string result;
 
             /// Random
-            var random = new Random();
-            for (int i = 0; i <= number_Of_Inserts; i += batch)
-            {
-                for (var j = i; j < i + batch; j++)
-                {
-                    int value = random.Next();
-                    tree.Put(value, "text about " + value);
-                    result = tree.Get(value);
-                }
-                tree.Commit();
-            }
+            //var random = new Random();
+            //for (int i = 0; i <= number_Of_Inserts; i += batch)
+            //{
+            //    for (var j = i; j < i + batch; j++)
+            //    {
+            //        int value = random.Next();
+            //        tree.Put(value, "text about " + value);
+            //       // result = tree.Get(value);
+            //    }
+            //    tree.Commit();
+            //}
 
             //int count = number_Of_Inserts;
             //var random = new Random();
@@ -84,21 +100,21 @@ namespace File_System_ES.Benchmarks
             //    tree.Commit();
             //}
 
-            //for (int i = 0; i < number_Of_Inserts; i += batch)
-            //{
-            //    for (var j = i; j < i + batch; j++)
-            //    {
-            //        //var g = Guid.NewGuid();
-            //        tree.Put(j, "text about " + j);
-            //        //result = tree.Get(j);
-            //        for (int k = j; k >= 0; k--)
-            //            result = tree.Get(k);
-            //    }
-            //    tree.Commit();
+            for (int i = 0; i < number_Of_Inserts; i += batch)
+            {
+                for (var j = i; j < i + batch; j++)
+                {
+                    var g = Guid.NewGuid();
+                    tree.Put(j, "text about " + j);
+                    //result = tree.Get(j+"");
+                    for (int k = j; k >= 0; k--)
+                        result = tree.Get(k);
+                }
+                tree.Commit();
 
-            //    for (int k = i + batch - 1; k >= 0; k--)
-            //        result = tree.Get(k);
-            //}
+                //for (int k = i + batch - 1; k >= 0; k--)
+                //    result = tree.Get(k);
+            }
 
 
             ///  Read Only
@@ -132,116 +148,4 @@ namespace File_System_ES.Benchmarks
     }
 
 
-    public class Int_Serializer : File_System_ES.Append.ISerializer<int>
-    {
-        public byte[] GetBytes(int value)
-        {
-            return BitConverter.GetBytes(value);
-        }
-
-        public int Get_Instance(byte[] value, int startIndex)
-        {
-            return BitConverter.ToInt32(value, startIndex);
-        }
-
-        public int Serialized_Size_For_Single_Key_In_Bytes()
-        {
-            return 4;
-        }
-
-
-        public unsafe void To_Buffer(int[] values, int end_Index, byte[] buffer, int buffer_offset)
-        {
-            fixed (int* p_Pointers = &values[0])
-            fixed (byte* p_buff = &buffer[0])
-            {
-                byte* shifted = p_buff + buffer_offset;
-                File_System_ES.Append.Unsafe_Utilities.Memcpy(shifted, (byte*)p_Pointers, 8 * (end_Index + 1));
-            }
-        }
-
-
-        unsafe public int[] Get_Instances(byte[] value, int startIndex, int length)
-        {
-            int[] result = new int[length];
-            fixed (int* p_Pointers = &result[0])
-            fixed (byte* p_buff = &value[0])
-            {
-                byte* shifted = p_buff + startIndex;
-                File_System_ES.Append.Unsafe_Utilities.Memcpy(shifted, (byte*)p_Pointers, 4 * length);
-            }
-            return result;
-        }
-    }
-
-    public class Long_Serializer : File_System_ES.Append.ISerializer<long>
-    {
-        public byte[] GetBytes(long value)
-        {
-            return BitConverter.GetBytes(value);
-        }
-
-        public long Get_Instance(byte[] value, int startIndex)
-        {
-            return BitConverter.ToInt64(value, startIndex);
-        }
-
-        public int Serialized_Size_For_Single_Key_In_Bytes()
-        {
-            return 8;
-        }
-
-
-        public unsafe void To_Buffer(long[] values, int end_Index, byte[] buffer, int buffer_offset)
-        {
-            fixed (long* p_Pointers = &values[0])
-            fixed (byte* p_buff = &buffer[0])
-            {
-                byte* shifted = p_buff + buffer_offset;
-                File_System_ES.Append.Unsafe_Utilities.Memcpy(shifted, (byte*)p_Pointers, 8 * (end_Index + 1));
-            }
-        }
-
-
-        public long[] Get_Instances(byte[] value, int startIndex, int length)
-        {
-            throw new NotImplementedException();
-        }
-    }
-
-    public class Guid_Serializer : File_System_ES.Append.ISerializer<Guid>
-    {
-        public byte[] GetBytes(Guid value)
-        {
-            return value.ToByteArray();
-        }
-
-        public Guid Get_Instance(byte[] value, int startIndex)
-        {
-            //var slice = new byte[16];
-            //Array.Copy(value, startIndex, slice, 0, 16);
-            //return new Guid(slice);
-            return new Guid(new byte[] {   value[startIndex], value[startIndex + 1], value[startIndex + 2], value[startIndex + 3],
-                                    value[startIndex + 4], value[startIndex + 5], value[startIndex + 6], value[startIndex + 7],
-                                    value[startIndex + 8], value[startIndex + 9], value[startIndex + 10], value[startIndex + 11],
-                                    value[startIndex + 12], value[startIndex + 13], value[startIndex + 14], value[startIndex + 15]});
-        }
-
-        public int Serialized_Size_For_Single_Key_In_Bytes()
-        {
-            return 16;
-        }
-
-
-        public void To_Buffer(Guid[] values, int end_Index, byte[] buffer, int buffer_offset)
-        {
-            throw new NotImplementedException();
-        }
-
-
-        public Guid[] Get_Instances(byte[] value, int startIndex, int length)
-        {
-            throw new NotImplementedException();
-        }
-    }
 }

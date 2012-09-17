@@ -338,16 +338,16 @@ namespace File_System_ES.Append
 
         public Node<T> Commit(Stream indexStream)
         {
-            var pending_Nodes = new List<Node<T>>();
+            var pending_Nodes_ = new List<Node<T>>();
 
-            Find_All_Pending_Nodes_From(pending_Nodes, Uncommitted_Root);
+            Find_All_Pending_Nodes_From(pending_Nodes_, Uncommitted_Root);
 
-            int neededBytes = Block_Size * pending_Nodes.Count;
-            var blocks = new List<Block_Usage>();
-            //blocks = Look_For_Available_Blocks(neededBytes);
-            blocks = new List<Block_Usage>();
+            int neededBytes = Block_Size * pending_Nodes_.Count;
+
+            var blocks = Look_For_Available_Blocks(neededBytes);
+
             Blocks_Count += blocks.Count;
-            Nodes_Count += pending_Nodes.Count;
+            Nodes_Count += pending_Nodes_.Count;
             Commit_Count++;
 
             foreach (var block in blocks)
@@ -365,12 +365,12 @@ namespace File_System_ES.Append
 
             var addressesQueue = new Queue<long>();
             foreach (var block in blocks)
-                for (int i = 0; i < block.Length && pending_Nodes.Count > addressesQueue.Count; i += Block_Size)
+                for (int i = 0; i < block.Length && pending_Nodes_.Count > addressesQueue.Count; i += Block_Size)
                     addressesQueue.Enqueue(block.Base_Address() + i);
 
             Update_Addresses_From( Uncommitted_Root, addressesQueue);
 
-            var nodes = new Queue<Node<T>>(pending_Nodes.OrderBy(d => d.Address));
+            var nodes = new Queue<Node<T>>(pending_Nodes_.OrderBy(d => d.Address));
 
             foreach (var block in blocks)
             {
@@ -401,7 +401,7 @@ namespace File_System_ES.Append
                     Block_Usage_Finished(block);
             }
 
-            foreach (var node in pending_Nodes)
+            foreach (var node in pending_Nodes_)
                 node.Is_Volatile = false;
 
             Index_Stream.Flush();
@@ -410,7 +410,7 @@ namespace File_System_ES.Append
             Pending_Nodes.Clear();
             Index_Stream.Flush();
 
-           // Add_Block_Address_To_Available_Space();
+            Add_Block_Address_To_Available_Space();
             Freed_Empty_Slots.Clear();
 
             var newRoot = Node_Factory.Create_New_One_Like_This(Uncommitted_Root);

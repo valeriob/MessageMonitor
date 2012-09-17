@@ -1,18 +1,31 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Security;
 using System.Text;
 
 namespace File_System_ES.Append
 {
     public static class Unsafe_Utilities
     {
+        // http://code4k.blogspot.it/2010/10/high-performance-memcpy-gotchas-in-c.html
+
+        [DllImport("msvcrt.dll", EntryPoint = "memcpy",
+            CallingConvention = CallingConvention.Cdecl, SetLastError = false), 
+        SuppressUnmanagedCodeSecurity]
+        public static unsafe extern void* CopyMemory(void* dest, void* src, ulong count);
+
         public unsafe static void Memcpy(byte* dest, byte* src, int len)
         {
+            //CopyMemory((void*)dest, (void*)src, (ulong)len);
+            //return;
             if (len >= 64)
             {
                 do
                 {
+                    var ad= *dest << 1;
+
                     *(long*)dest = *(long*)src;
                     *(long*)(dest + 8) = *(long*)(src + 8);
                     *(long*)(dest + 16) = *(long*)(src + 16);

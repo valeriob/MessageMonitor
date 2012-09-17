@@ -33,7 +33,7 @@ namespace File_System_ES.Append
 
             Serializer = serializer;
             Node_Factory = new Node_Factory<T>(serializer, Size);
-            Cache = new Cache_LRU<long, Node<T>>((k) => Read_Node(k));
+            Cache = new Cache_LRU<long, Node<T>>();
             Block_Size = Node_Factory.Size_In_Bytes(Size);
 
             Index_Stream = indexStream;
@@ -129,8 +129,6 @@ namespace File_System_ES.Append
 
             var data_Address = Data_Pointer();
             Write_Data(value, key, 1);
-            //var write_Data = System.Threading.Tasks.Task.Factory.StartNew(() =>  Write_Data(value, key, 1) );
-
 
             Node<T> newRoot = null;
             for(int i=0; i< leaf.Key_Num; i++)
@@ -152,8 +150,6 @@ namespace File_System_ES.Append
             newRoot = Insert_in_node(leaf, key, data_Address);
 
             Pending_Changes.Append_New_Root(newRoot);
-
-            //write_Data.Wait();
         }
 
         public bool Delete(T key)
