@@ -37,7 +37,7 @@ namespace File_System_ES.Benchmarks
             var dataStream = new FileStream(dataFile, FileMode.OpenOrCreate);
 
             var appendBpTree = new Append.BPlusTree<string>(metadataStream, indexStream, 
-                dataStream, 128, serializer);
+                dataStream, 3, serializer);
             tree = new String_BPlusTree<string>(appendBpTree);
 
         }
