@@ -135,7 +135,7 @@ namespace File_System_ES.Append.Serializers
         public byte[] GetBytes(string value)
         {
             var buffer = new byte[16];
-            Encoding.GetBytes(value, 0, Math.Min(value.Length, 16), buffer, 0);
+            Encoding.GetBytes(value.PadRight(16), 0, Math.Min(value.Length, 16), buffer, 0);
             return buffer;
         }
 
@@ -153,8 +153,7 @@ namespace File_System_ES.Append.Serializers
         unsafe public void To_Buffer(string[] values, int end_Index, byte[] buffer, int buffer_offset)
         {
             for (int i = 0; i < end_Index; i++)
-
-                Encoding.GetBytes(values[i].ToCharArray(), 0,Math.Min(16, values[i].Length), buffer, i * 16 + buffer_offset);
+                Encoding.GetBytes(values[i].PadRight(16).ToCharArray(), 0, 16, buffer, i * 16 + buffer_offset);
         }
 
 
