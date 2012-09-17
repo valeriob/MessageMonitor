@@ -41,7 +41,8 @@ namespace File_System_ES.Append.Serializers
             fixed (byte* p_buff = &value[0])
             {
                 byte* shifted = p_buff + startIndex;
-                File_System_ES.Append.Unsafe_Utilities.Memcpy(shifted, (byte*)p_Pointers, 4 * length);
+                //File_System_ES.Append.Unsafe_Utilities.Memcpy(shifted, (byte*)p_Pointers, 4 * length);
+                File_System_ES.Append.Unsafe_Utilities.Memcpy((byte*)p_Pointers, shifted, 4 * length);
             }
             return result;
         }

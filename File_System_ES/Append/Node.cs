@@ -187,7 +187,8 @@ namespace File_System_ES.Append
             {
                 string children = "";
                 for (int i = 0; i < Key_Num + 1; i++)
-                    children += " { "+Children[i].Print_Keys() + " } , ";
+                    if(Children[i] != null)
+                        children += " { "+ Children[i].Print_Keys() + " } , ";
                 children = children.TrimEnd(',', ' ');
 
                 return string.Format("{2} {1} Node : {0}.  Children : [ {3} ]", keys, root, Address, children);
