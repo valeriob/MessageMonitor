@@ -2,39 +2,62 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace File_System_ES.Append
 {
-    public class Node_Factory<T> where T : IComparable<T>, IEquatable<T>
+    public class Node_Factory<T> where T : IComparable<T>, IEquatable<T> // TODO DISPOSE TASK
     {
         ISerializer<T> Serializer;
-        public Node_Factory(ISerializer<T> serializer)
+        Task builder;
+        int Size;
+        ManualResetEvent _lock = new ManualResetEvent(true);
+
+        public Node_Factory(ISerializer<T> serializer, int size)
         {
             Serializer = serializer;
+            Size = size;
+            builder = Task.Factory.StartNew(Build, TaskCreationOptions.LongRunning);
         }
 
         System.Collections.Concurrent.ConcurrentQueue<Node<T>> nodes = new System.Collections.Concurrent.ConcurrentQueue<Node<T>>();
 
-        public Node<T> Create_New(int size, bool isLeaf)
+        public Node<T> Create_New(bool isLeaf)
         {
             Node<T> node;
             if (nodes.TryDequeue(out node))
             {
+                if (nodes.Count < 50)
+                    _lock.Set();
+
                 node.IsLeaf = isLeaf;
                 node.Is_Volatile = true;
                 return node;
             }
 
-            return new Node<T>(this, size, isLeaf);
+            return new Node<T>(this, Size, isLeaf);
         }
 
+        protected void Build()
+        {
+            while (true)
+            {
+                _lock.WaitOne();
+
+                for (int i = 0; i < 50; i++)
+                    nodes.Enqueue(new Node<T>(this, Size, false));
+
+                _lock.Reset();
+            }
+        }
         public void Return(Node<T> node)
         {
             if (nodes.Count < 1024)
                 nodes.Enqueue(node);
         }
 
-        unsafe public Node<T> From_Bytes_Unsafe(byte[] buffer, int size)
+        unsafe public Node<T> From_Bytes(byte[] buffer, int size)
         {
             var byteCount = Size_In_Bytes(size);
             var keySize = Serializer.Serialized_Size_For_Single_Key_In_Bytes();
@@ -43,10 +66,10 @@ namespace File_System_ES.Append
             fixed (byte* p_buff = &buffer[0])
             {
                 byte* shifted = p_buff ;
-                Unsafe_Utilities.Memcpy(shifted, (byte*)&key_Num, 4);
+                Unsafe_Utilities.Memcpy((byte*)&key_Num, shifted, 4);
             }
 
-            var node = Create_New(size, buffer[4] == 1);
+            var node = Create_New(buffer[4] == 1);
            
             node.Key_Num = key_Num;
 
@@ -61,15 +84,16 @@ namespace File_System_ES.Append
                 Unsafe_Utilities.Memcpy((byte*)p_Pointers, shifted, 8 * (key_Num + 1));
             }
 
+            //var other = From_Bytes_Safe(buffer, size);
             return node;
         }
 
-        public Node<T> From_Bytes(byte[] buffer, int size)
+        public Node<T> From_Bytes_Safe(byte[] buffer, int size)
         {
             var byteCount = Size_In_Bytes(size);
             var keySize = Serializer.Serialized_Size_For_Single_Key_In_Bytes();
 
-            var node = Create_New(size, BitConverter.ToBoolean(buffer, 4));
+            var node = Create_New(BitConverter.ToBoolean(buffer, 4));
             var key_Num = BitConverter.ToInt32(buffer, 0);
 
             node.Key_Num = key_Num;
@@ -130,7 +154,7 @@ namespace File_System_ES.Append
 
         public Node<T> Create_New_One_Like_This(Node<T> source)
         {
-            var node = Create_New(source.Keys.Length, source.IsLeaf);
+            var node = Create_New(source.IsLeaf);
             node.Key_Num = source.Key_Num;
             Array.Copy(source.Keys, node.Keys, source.Keys.Length);
             Array.Copy(source.Pointers, node.Pointers, source.Pointers.Length);

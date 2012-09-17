@@ -46,17 +46,17 @@ namespace File_System_ES.Benchmarks
             string result;
 
             /// Random
-            //var random = new Random();
-            //for (int i = 0; i <= number_Of_Inserts; i += batch)
-            //{
-            //    for (var j = i; j < i + batch; j++)
-            //    {
-            //        int value = random.Next();
-            //        tree.Put(value, "text about " + value);
-            //        result = tree.Get(value);
-            //    }
-            //    tree.Commit();
-            //}
+            var random = new Random();
+            for (int i = 0; i <= number_Of_Inserts; i += batch)
+            {
+                for (var j = i; j < i + batch; j++)
+                {
+                    int value = random.Next();
+                    tree.Put(value, "text about " + value);
+                    result = tree.Get(value);
+                }
+                tree.Commit();
+            }
 
             //int count = number_Of_Inserts;
             //var random = new Random();
@@ -84,21 +84,21 @@ namespace File_System_ES.Benchmarks
             //    tree.Commit();
             //}
 
-            for (int i = 0; i < number_Of_Inserts; i += batch)
-            {
-                for (var j = i; j < i + batch; j++)
-                {
-                    //var g = Guid.NewGuid();
-                    tree.Put(j, "text about " + j);
-                    //result = tree.Get(i);
-                    //for (int k = j; k >= 0; k--)
-                    //    result = tree.Get(k);
-                }
-                tree.Commit();
+            //for (int i = 0; i < number_Of_Inserts; i += batch)
+            //{
+            //    for (var j = i; j < i + batch; j++)
+            //    {
+            //        //var g = Guid.NewGuid();
+            //        tree.Put(j, "text about " + j);
+            //        //result = tree.Get(j);
+            //        for (int k = j; k >= 0; k--)
+            //            result = tree.Get(k);
+            //    }
+            //    tree.Commit();
 
-                //for (int k = i + batch - 1; k >= 0; k--)
-                //    result = tree.Get(k);
-            }
+            //    for (int k = i + batch - 1; k >= 0; k--)
+            //        result = tree.Get(k);
+            //}
 
 
             ///  Read Only

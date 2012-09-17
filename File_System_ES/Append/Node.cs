@@ -54,9 +54,14 @@ namespace File_System_ES.Append
 
         public void Insert_Key(T key, long address, Node<T> child)
         {
-            int x = 0;
-            while (x < Key_Num && Keys[x].CompareTo(key) < 0)
-                x++;
+            var index = Array.BinarySearch(Keys, 0, Key_Num, key);
+            //int x = 0;
+            //while (x < Key_Num && Keys[x].CompareTo(key) < 0)
+            //    x++;
+            int x = index;
+            if (x < 0)
+                x = ~index;
+
 
             for (int i = Key_Num; i > x; i--)
                 Keys[i] = Keys[i - 1];
@@ -99,7 +104,7 @@ namespace File_System_ES.Append
             int size = Keys.Length;
 
             var node_Left = this;
-            var node_Right = node_Factory.Create_New(Keys.Length, node_Left.IsLeaf);
+            var node_Right = node_Factory.Create_New(node_Left.IsLeaf);
 
             node_Right.Parent = node_Left.Parent;
             var mid_Key = node_Left.Keys[size / 2];

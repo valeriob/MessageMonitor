@@ -32,7 +32,7 @@ namespace File_System_ES.Append
             Size = order;
 
             Serializer = serializer;
-            Node_Factory = new Node_Factory<T>(serializer);
+            Node_Factory = new Node_Factory<T>(serializer, Size);
             Cache = new Cache_LRU<long, Node<T>>((k) => Read_Node(k));
             Block_Size = Node_Factory.Size_In_Bytes(Size);
 
@@ -51,6 +51,8 @@ namespace File_System_ES.Append
 
         public void Commit()
         {
+            if (!Pending_Changes.Has_Pending_Changes())
+                return;
             foreach (var address in Pending_Changes.Freed_Empty_Slots)
                 Cache.Invalidate(address);
 
@@ -108,7 +110,7 @@ namespace File_System_ES.Append
             }
             catch (Exception) { }
 
-            var root = Node_Factory.Create_New(Size, true);
+            var root = Node_Factory.Create_New(true);
             Write_Node(root);
             Pending_Changes.Append_New_Root(root);
         }
@@ -127,11 +129,14 @@ namespace File_System_ES.Append
 
             var data_Address = Data_Pointer();
             Write_Data(value, key, 1);
+            //var write_Data = System.Threading.Tasks.Task.Factory.StartNew(() =>  Write_Data(value, key, 1) );
+
 
             Node<T> newRoot = null;
             for(int i=0; i< leaf.Key_Num; i++)
                 if (key.Equals(leaf.Keys[i]))
                 {
+                    return;
                     var newLeaf = Node_Factory.Create_New_One_Like_This(leaf);
                     newLeaf.Versions[i]++;
                     newLeaf.Pointers[i] = data_Address;
@@ -147,6 +152,8 @@ namespace File_System_ES.Append
             newRoot = Insert_in_node(leaf, key, data_Address);
 
             Pending_Changes.Append_New_Root(newRoot);
+
+            //write_Data.Wait();
         }
 
         public bool Delete(T key)
@@ -202,7 +209,7 @@ namespace File_System_ES.Append
 
                 if (node.Parent == null) // if i'm splitting the root, i need a new up level
                 {
-                    var root = Node_Factory.Create_New(Size, false);
+                    var root = Node_Factory.Create_New( false);
                     root.Keys[0] = split.Mid_Key;
                     root.Pointers[0] = split.Node_Left.Address;
                     root.Pointers[1] = split.Node_Right.Address;
@@ -271,19 +278,33 @@ namespace File_System_ES.Append
             int depth = 0;
             while (!root.IsLeaf)
             {
-                for (int i = 0; i <= root.Key_Num; i++)
-                    if (i == root.Key_Num || key.CompareTo(root.Keys[i])< 0)
-                    {
-                        if (root.Children[i] != null)
-                            root = root.Children[i];
-                        else
-                            root = Read_Node_From_Pointer(root, i);
+                var index = Array.BinarySearch(root.Keys, 0, root.Key_Num, key);
 
-                        if (!root.IsValid)
-                            throw new Exception("An Invalid node was read");
-                        depth++;
-                        break;
-                    }
+                int i = index;
+                if (i < 0)
+                    i = ~index;
+                if (root.Children[i] != null)
+                    root = root.Children[i];
+                else
+                    root = Read_Node_From_Pointer(root, i);
+
+                if (!root.IsValid)
+                    throw new Exception("An Invalid node was read");
+                depth++;
+
+                //for (int i = 0; i <= root.Key_Num; i++)
+                //    if (i == root.Key_Num || key.CompareTo(root.Keys[i]) < 0)
+                //    {
+                //        if (root.Children[i] != null)
+                //            root = root.Children[i];
+                //        else
+                //            root = Read_Node_From_Pointer(root, i);
+
+                //        if (!root.IsValid)
+                //            throw new Exception("An Invalid node was read");
+                //        depth++;
+                //        break;
+                //    }
                 Debug.Assert(depth < 100);
             }
 

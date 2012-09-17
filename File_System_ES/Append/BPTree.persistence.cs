@@ -48,10 +48,11 @@ namespace File_System_ES.Append
         {
              long address = parent.Pointers[key_Index];
              
-             //var node = Cache.Get(address);
-             //node = Node_Factory.Create_New_One_Like_This(node);
+             var node = Cache.Get(address);
+             node = Node_Factory.Create_New_One_Like_This(node);
             
-            var node = Read_Node(address);
+             //var node = Read_Node(address);
+
              node.Is_Volatile = false;
              node.Parent = parent;
              node.Address = address;

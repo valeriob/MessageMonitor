@@ -17,6 +17,9 @@ namespace File_System_ES.Append
         Task cleanup;
         AutoResetEvent gate = new AutoResetEvent(false);
 
+        public int Hits { get; protected set; }
+        public int Misses { get; protected set; }
+
         public Cache_LRU(Func<TKey, TValue> fetchValue)
         {
             _fetch = fetchValue;
@@ -34,6 +37,7 @@ namespace File_System_ES.Append
 
             if (_store.ContainsKey(key))
             {
+                Hits++;
                 var value = _store[key];
                 value.Last_Used = DateTime.Now;
                 value.Used_Count++;
@@ -41,6 +45,7 @@ namespace File_System_ES.Append
             }
             else
             {
+                Misses++;
                 var value = _fetch(key);
                 _store[key] = new Cache_Line<TKey, TValue> { Added = DateTime.Now, Key = key, Value = value, Last_Used = DateTime.Now, Used_Count = 1 };
                 Evict_If_Necessary();
@@ -91,6 +96,11 @@ namespace File_System_ES.Append
             }
         }
 
+        public override string ToString()
+        {
+            return string.Format(" Occupation {0} / {1}, Hits : {2}, Misses {3}", _store.Count, Max_Size, Hits, Misses );
+        }
+
     }
 
     public class Cache_Line<TKey, TValue>
@@ -100,5 +110,10 @@ namespace File_System_ES.Append
         public int Used_Count { get; set; }
         public DateTime Added { get; set; }
         public DateTime Last_Used { get; set; }
+
+        public override string ToString()
+        {
+            return string.Format("Key {0}, Value {1}, Used {2}, Added : {3}, Last Usage {4} ", Key, Value, Used_Count, Added, Last_Used);
+        }
     }
 }
