@@ -162,7 +162,7 @@ namespace File_System_ES.Append.Serializers
             var result = new string[length];
 
             for (int i = 0; i < length; i++)
-                result[i] = Encoding.GetString(buffer, startIndex + i * 16, 16);
+                result[i] = Encoding.GetString(buffer, startIndex + i * 16, 16).TrimEnd();
             return result;
 
         }

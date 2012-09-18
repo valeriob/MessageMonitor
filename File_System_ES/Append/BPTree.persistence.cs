@@ -49,6 +49,7 @@ namespace File_System_ES.Append
              long address = parent.Pointers[key_Index];
              
              var node = Cache.Get(address);
+             //var node = Read_Node(address);
              if (node == null)
              {
                  node = Read_Node(address);

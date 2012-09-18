@@ -105,15 +105,15 @@ namespace File_System_ES.Benchmarks
                 for (var j = i; j < i + batch; j++)
                 {
                     var g = Guid.NewGuid();
-                    tree.Put(j +"", "text about " + j);
+                    tree.Put(j+"" , "text about " + j);
                     //result = tree.Get(j+"");
                     for (int k = j; k >= 0; k--)
                         result = tree.Get(k +"");
                 }
                 tree.Commit();
 
-                //for (int k = i + batch - 1; k >= 0; k--)
-                //    result = tree.Get(k);
+                for (int k = i + batch - 1; k >= 0; k--)
+                    result = tree.Get(k +"");
             }
 
 

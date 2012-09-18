@@ -279,6 +279,9 @@ namespace File_System_ES.Append
                 int i = index;
                 if (i < 0)
                     i = ~index;
+                else
+                    if (!root.IsLeaf)
+                        i++;
                 if (root.Children[i] != null)
                     root = root.Children[i];
                 else
