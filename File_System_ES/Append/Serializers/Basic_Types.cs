@@ -127,6 +127,7 @@ namespace File_System_ES.Append.Serializers
         }
     }
 
+    // http://www.codeproject.com/Tips/447938/High-performance-Csharp-byte-array-to-hex-string-t
     public class String_Serializer : ISerializer<string>
     {
         readonly Encoding Encoding = Encoding.UTF8;

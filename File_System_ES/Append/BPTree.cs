@@ -19,7 +19,7 @@ namespace File_System_ES.Append
         
         protected int Size { get; set; }
 
-        public List<Block_Group> Empty_Slots = new List<Block_Group>();
+        //public List<Block_Group> Empty_Slots = new List<Block_Group>();
         public Dictionary<long, Node<T>> Cached_Nodes { get; set; }
 
         public int Block_Size { get; protected set; }
@@ -45,7 +45,7 @@ namespace File_System_ES.Append
             _index_Pointer = Math.Max(8, indexStream.Length);
             _data_Pointer = Data_Stream.Length;
 
-            Pending_Changes = new Pending_Changes<T>(Index_Stream, Block_Size, _index_Pointer, Empty_Slots, Node_Factory);
+            Pending_Changes = new Pending_Changes<T>(Index_Stream, Block_Size, _index_Pointer, Node_Factory);
             Init();
         }
 
@@ -63,36 +63,23 @@ namespace File_System_ES.Append
             Metadata_Stream.Write(BitConverter.GetBytes(newRoot.Address), 0, 8);
             Metadata_Stream.Flush();
 
-            //Pending_Changes.Add_Block_Address_To_Available_Space();
-
-            //foreach (var address in Pending_Changes.Freed_Empty_Slots)
-            //{
-            //    Index_Stream.Seek(address, SeekOrigin.Begin);
-            //    Index_Stream.Write(BitConverter.GetBytes(-1), 0, 4);
-            //}
-            //var usage = Count_Empty_Slots();
-
             Root = newRoot;
 
             Pending_Changes.Clean_Root();
+
             // TODO persist empty pages on metadata
             //Cached_Nodes.Clear();
             //foreach (var node in Pending_Changes.Last_Cached_Nodes())
             //    Cached_Nodes[node.Address] = node;
 
             _index_Pointer = Pending_Changes.Get_Index_Pointer();
-            //Empty_Slots = Pending_Changes.Get_Empty_Slots();
-
-            //Pending_Changes = null;
 
             Index_Stream.Flush();
         }
 
         public void RollBack()
         {
-            Index_Stream.SetLength(_index_Pointer);
-            Cached_Nodes.Clear();
-            //Pending_Changes = null;
+            throw new NotImplementedException("RollBack");
         }
 
         private void Init()
@@ -196,12 +183,7 @@ namespace File_System_ES.Append
             {
                 var split = node.Split(Node_Factory);
 
-                // Fix parent relation for moved children
-                //foreach (var descendant in split.Node_Right.Children.Where(c => c != null))
-                //    descendant.Parent = split.Node_Right;
-
                 Write_Node(split.Node_Right);
-                //Write_Node(split.Node_Left);
 
                 if (node.Parent == null) // if i'm splitting the root, i need a new up level
                 {
@@ -227,15 +209,12 @@ namespace File_System_ES.Append
             }
             else
             {
-                //child.Parent = node;
                 Write_Node(node);
 
                 while (node.Parent != null)
                 {
                     node = node.Parent;
                     Renew_Node_And_Dispose_Space(node);
-                    //node.Address = 0;
-                    //node.Is_Volatile = true;
                 }
 
                 newRoot = node;
@@ -282,6 +261,7 @@ namespace File_System_ES.Append
                 else
                     if (!root.IsLeaf)
                         i++;
+
                 if (root.Children[i] != null)
                     root = root.Children[i];
                 else
@@ -291,19 +271,6 @@ namespace File_System_ES.Append
                     throw new Exception("An Invalid node was read");
                 depth++;
 
-                //for (int i = 0; i <= root.Key_Num; i++)
-                //    if (i == root.Key_Num || key.CompareTo(root.Keys[i]) < 0)
-                //    {
-                //        if (root.Children[i] != null)
-                //            root = root.Children[i];
-                //        else
-                //            root = Read_Node_From_Pointer(root, i);
-
-                //        if (!root.IsValid)
-                //            throw new Exception("An Invalid node was read");
-                //        depth++;
-                //        break;
-                //    }
                 Debug.Assert(depth < 100);
             }
 
@@ -314,15 +281,5 @@ namespace File_System_ES.Append
 
     }
 
-    public class Usage
-    {
-        public int Invalid { get; set; }
-        public int Valid { get; set; }
-
-        public override string ToString()
-        {
-            return string.Format("Valid : {0}, Invalid : {1}", Valid, Invalid);
-        }
-    }
     
 }

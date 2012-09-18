@@ -30,8 +30,7 @@ namespace File_System_ES.Append
         public Node<T> Get_Uncommitted_Root() { return Uncommitted_Root; }
 
 
-        public Pending_Changes(Stream index_Stream, int blockSize, long index_Pointer, 
-            List<Block_Group> emptySlots, Node_Factory<T> node_Factory )
+        public Pending_Changes(Stream index_Stream, int blockSize, long index_Pointer,  Node_Factory<T> node_Factory )
         {
             Index_Stream = index_Stream;
             Block_Size = blockSize;
@@ -40,10 +39,10 @@ namespace File_System_ES.Append
             Freed_Empty_Slots = new List<long>();
             Pending_Nodes = new List<Node<T>>();
             Nodes = new List<Node<T>>();
-            Empty_Slots = emptySlots; // TODO copy by value !?
+            Empty_Slots = new List<Block_Group>();
 
-            _base_Address_Index = Empty_Slots.SelectMany(s => s.Blocks.Select(m => m.Value)).ToDictionary(d => d.Base_Address());
-            _end_Address_Index = Empty_Slots.SelectMany(s => s.Blocks.Select(m => m.Value)).ToDictionary(d => d.End_Address());
+            _base_Address_Index = new Dictionary<long, Block>();
+            _end_Address_Index = new Dictionary<long, Block>();
 
             _index_Pointer = index_Pointer;
         }
@@ -215,24 +214,6 @@ namespace File_System_ES.Append
                 root.Pointers[i] = root.Children[i].Address;
             }
         }
-        //protected void Update_Addresses_From(Node<T>[] nodes, Node<T> root, Queue<long> addresses)
-        //{
-        //    root.Address = addresses.Dequeue();
-        //    if (root.IsLeaf)
-        //        return;
-
-        //    for (int i = 0; i < nodes.Length; i++)
-        //    {
-        //        if (nodes[i].Parent != root)
-        //            continue;
-
-        //        var old_Child_Address = nodes[i].Address;
-
-        //        Update_Addresses_From(nodes, nodes[i], addresses);
-
-        //        root.Update_Child_Address(old_Child_Address, nodes[i].Address);
-        //    }
-        //}
 
         protected void Update_Addresses_From_Base(Node<T>[] nodes, Node<T> root, ref long base_Address)
         {
@@ -265,66 +246,6 @@ namespace File_System_ES.Append
         {
             Pending_Nodes.Add(node);
         }
-
-        public void Append_New_Root_Old(Node<T> root)
-        {
-            
-            var blocks = Look_For_Available_Blocks(Pending_Nodes.Count * Block_Size);
-            blocks.Clear();
-
-
-            var block_At_End_Of_File = new Block_Usage(new Block(_index_Pointer, int.MaxValue));
-
-            blocks.Add(block_At_End_Of_File);
-            blocks = blocks.OrderBy(b => b.Base_Address()).ToList();
-
-            var addressesQueue = new Queue<long>();
-            foreach (var block in blocks)
-                for (int i = 0; i < block.Length && Pending_Nodes.Count > addressesQueue.Count; i += Block_Size)
-                    addressesQueue.Enqueue(block.Base_Address() + i);
-
-            Update_Addresses_From(root, addressesQueue);
-
-            var nodes = new Queue<Node<T>>(Pending_Nodes.OrderBy(d => d.Address));
-
-            foreach (var block in blocks)
-            {
-                if (nodes.Count == 0)
-                    break;
-
-                var toUpdate = new List<Node<T>>();
-                for (int j = 0; j < block.Length && nodes.Count > 0; j += Block_Size)
-                {
-                    toUpdate.Add(nodes.Dequeue());
-                    block.Use(Block_Size);
-                }
-
-                int buffer_Size = toUpdate.Count * Block_Size;
-                var buffer = new byte[buffer_Size];
-                for (int i = 0; i < toUpdate.Count; i++)
-                    Node_Factory.To_Bytes_In_Buffer(toUpdate[i], buffer, i * Block_Size);
-
-                Index_Stream.Seek(block.Base_Address(), SeekOrigin.Begin);
-                Index_Stream.Write(buffer, 0, buffer.Length);
-            }
-
-            foreach (var block in blocks)
-            {
-                if (block == block_At_End_Of_File)
-                   _index_Pointer = block.Base_Address() + block.Used_Length;
-                else
-                    Block_Usage_Finished(block);
-            }
-
-            Index_Stream.Flush();
-            Nodes.Clear();
-            Nodes.AddRange(Pending_Nodes);
-            Pending_Nodes.Clear();
-            //Freed_Empty_Slots.Clear();
-            Uncommitted_Root = root;
-        }
-
-
 
         public void Append_New_Root(Node<T> root)
         {

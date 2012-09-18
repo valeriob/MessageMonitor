@@ -55,13 +55,11 @@ namespace File_System_ES.Append
         public void Insert_Key(T key, long address, Node<T> child)
         {
             var index = Array.BinarySearch(Keys, 0, Key_Num, key);
-            //int x = 0;
-            //while (x < Key_Num && Keys[x].CompareTo(key) < 0)
-            //    x++;
-            int x = index;
-            if (x < 0)
-                x = ~index;
 
+            if(index >=0)
+                throw new Exception("Key already exists ?");
+           
+            int x = ~index;
 
             for (int i = Key_Num; i > x; i--)
                 Keys[i] = Keys[i - 1];
@@ -193,6 +191,21 @@ namespace File_System_ES.Append
 
                 return string.Format("{2} {1} Node : {0}.  Children : [ {3} ]", keys, root, Address, children);
             }
+        }
+
+        public override bool Equals(object obj)
+        {
+            var other = obj as Node<T>;
+            if (Key_Num != other.Key_Num)
+                return false;
+            for (int i = 0; i < Key_Num + 1; i++)
+            {
+                if (i < Key_Num && !Keys[i].Equals(other.Keys[i]))
+                    return false;
+                 if (Pointers[i] != other.Pointers[i])
+                     return false;
+            }
+            return true;
         }
     }
 

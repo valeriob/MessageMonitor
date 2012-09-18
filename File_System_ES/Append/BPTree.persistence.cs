@@ -24,7 +24,6 @@ namespace File_System_ES.Append
             Pending_Changes.Append_Node(node);
         }
 
-        //List<Node<T>> disposed = new List<Node<T>>();
         protected void Renew_Node_And_Dispose_Space(Node<T> node)
         {
             Pending_Changes.Free_Address(node.Address);
@@ -49,15 +48,15 @@ namespace File_System_ES.Append
              long address = parent.Pointers[key_Index];
              
              var node = Cache.Get(address);
-             //var node = Read_Node(address);
              if (node == null)
              {
                  node = Read_Node(address);
                  Cache.Put(address, node);
              }
              else
-                 node = Node_Factory.Create_New_One_Like_This(node);
-            
+             {
+                 node = Node_Factory.Create_New_One_Detached_Like_This(node);
+             }
              //var node = Read_Node(address);
 
              node.Is_Volatile = false;
@@ -74,27 +73,8 @@ namespace File_System_ES.Append
             Index_Stream.Seek(address, SeekOrigin.Begin);
             Index_Stream.Read(buffer, 0, buffer.Length);
 
-            if (_readMemory_Count.ContainsKey(address))
-                _readMemory_Count[address] += 1;
-            else
-                _readMemory_Count[address] = 1;
-
             return Node_Factory.From_Bytes(buffer, Size);
         }
-
-        //protected Node<T> Read_Node_From_Pointer(Node<T> parent, int key_Index)
-        //{
-        //    long address = parent.Pointers[key_Index];
-
-        //    var node = Read_Node(address);
-        //    node.Is_Volatile = false;
-        //    node.Parent = parent;
-        //    node.Address = address;
-
-        //    parent.Children[key_Index] = node;
-
-        //    return node;
-        //}
 
         protected void Write_Data(byte[] value, T key, int version)
         {

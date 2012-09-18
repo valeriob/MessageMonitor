@@ -9,9 +9,9 @@ namespace File_System_ES.Benchmarks
 {
     public class BPlusTree : Benchmark
     {
-        String_BPlusTree<string> tree;
+        String_BPlusTree<int> tree;
         Stream indexStream;
-        File_System_ES.Append.ISerializer<string> serializer = new String_Serializer();
+        File_System_ES.Append.ISerializer<int> serializer = new Int_Serializer();
 
         public BPlusTree()
         {
@@ -28,7 +28,7 @@ namespace File_System_ES.Benchmarks
             
             //var indexStream = new MemoryStream();
             //var dataStream = new MemoryStream();
-            //var indexStream = new MyFileStream(indexFile, FileMode.OpenOrCreate);
+
             var metadataStream = new FileStream(metadataFile, FileMode.OpenOrCreate);
             indexStream = new FileStream(indexFile, FileMode.OpenOrCreate);
             //indexStream = new FileStream(indexFile, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None, 16384,
@@ -36,9 +36,9 @@ namespace File_System_ES.Benchmarks
 
             var dataStream = new FileStream(dataFile, FileMode.OpenOrCreate);
 
-            var appendBpTree = new Append.BPlusTree<string>(metadataStream, indexStream, 
-                dataStream, 3, serializer);
-            tree = new String_BPlusTree<string>(appendBpTree);
+            var appendBpTree = new Append.BPlusTree<int>(metadataStream, indexStream, 
+                dataStream, 128, serializer);
+            tree = new String_BPlusTree<int>(appendBpTree);
 
         }
 
@@ -51,7 +51,7 @@ namespace File_System_ES.Benchmarks
                 for (var j = i; j < i + batch; j++)
                 {
                     var g = Guid.NewGuid();
-                    tree.Put(j +"", "text about " + j);
+                    tree.Put(j , "text about " + j);
                 }
                 tree.Commit();
             }
@@ -105,15 +105,15 @@ namespace File_System_ES.Benchmarks
                 for (var j = i; j < i + batch; j++)
                 {
                     var g = Guid.NewGuid();
-                    tree.Put(j+"" , "text about " + j);
+                    tree.Put(j , "text about " + j);
                     //result = tree.Get(j+"");
-                    for (int k = j; k >= 0; k--)
-                        result = tree.Get(k +"");
+                    //for (int k = j; k >= 0; k--)
+                    //    result = tree.Get(k +"");
                 }
                 tree.Commit();
 
-                for (int k = i + batch - 1; k >= 0; k--)
-                    result = tree.Get(k +"");
+                //for (int k = i + batch - 1; k >= 0; k--)
+                //    result = tree.Get(k +"");
             }
 
 
@@ -134,18 +134,6 @@ namespace File_System_ES.Benchmarks
     }
 
 
-
-    public class MyFileStream : FileStream
-    {
-        public MyFileStream(string path, FileMode mode)
-            : base(path, mode)// FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.WriteThrough | FileOptions.SequentialScan) 
-        { }
-
-        public override void Flush()
-        {
-            base.Flush(true);
-        }
-    }
 
 
 }

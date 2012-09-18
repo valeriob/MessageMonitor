@@ -162,6 +162,16 @@ namespace File_System_ES.Append
             node.Address = source.Address;
             return node;
         }
+        public Node<T> Create_New_One_Detached_Like_This(Node<T> source)
+        {
+            var node = Create_New(source.IsLeaf);
+            node.Key_Num = source.Key_Num;
+            Array.Copy(source.Keys, node.Keys, source.Keys.Length);
+            Array.Copy(source.Pointers, node.Pointers, source.Pointers.Length);
+            Array.Copy(source.Versions, node.Versions, source.Versions.Length);
+            node.Address = source.Address;
+            return node;
+        }
 
 
         public int Size_In_Bytes(int size)
