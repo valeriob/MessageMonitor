@@ -5,7 +5,7 @@ using System.Text;
 
 namespace File_System_ES.Append.Serializers
 {
-    // http://www.codeproject.com/Tips/447938/High-performance-Csharp-byte-array-to-hex-string-t
+
     public class String_Serializer : ISerializer<string>
     {
         readonly Encoding Encoding = Encoding.UTF8;
@@ -32,8 +32,8 @@ namespace File_System_ES.Append.Serializers
         unsafe public void To_Buffer(string[] values, int end_Index, byte[] buffer, int buffer_offset)
         {
             for (int i = 0; i < end_Index; i++)
-                DRDigit.Fast.FromHexString_ToBuffer(values[i], buffer, i * 16 + buffer_offset);
-                //Encoding.GetBytes(values[i].PadRight(16).ToCharArray(), 0, 16, buffer, i * 16 + buffer_offset);
+                //DRDigit.Fast.FromHexString_ToBuffer(values[i], buffer, i * 16 + buffer_offset);
+                Encoding.GetBytes(values[i].PadRight(16).ToCharArray(), 0, 16, buffer, i * 16 + buffer_offset);
         }
 
 
@@ -42,8 +42,8 @@ namespace File_System_ES.Append.Serializers
             var result = new string[length];
 
             for (int i = 0; i < length; i++)
-                // result[i] = Encoding.GetString(buffer, startIndex + i * 16, 16).TrimEnd();
-                result[i] = DRDigit.Fast.ToHexString(buffer, startIndex + i * 16, 16, false);
+                 result[i] = Encoding.GetString(buffer, startIndex + i * 16, 16).TrimEnd();
+                //result[i] = DRDigit.Fast.ToHexString(buffer, startIndex + i * 16, 16, false);
             return result;
 
         }

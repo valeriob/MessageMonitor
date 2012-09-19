@@ -1,4 +1,6 @@
 ﻿using System;
+
+// http://www.codeproject.com/Tips/447938/High-performance-Csharp-byte-array-to-hex-string-t
 namespace DRDigit
 {
     // class is sealed and not static in my personal complete version
