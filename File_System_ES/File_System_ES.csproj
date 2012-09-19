@@ -83,6 +83,8 @@
     <Compile Include="Append\Pending_Changes\Block.cs" />
     <Compile Include="Append\Pending_Changes\Empty_Space.cs" />
     <Compile Include="Append\Serializers\Basic_Types.cs" />
+    <Compile Include="Append\Serializers\Fast.cs" />
+    <Compile Include="Append\Serializers\String_Serializer.cs" />
     <Compile Include="Append\Unsafe_Utilities.cs" />
     <Compile Include="Basic_Heap.cs" />
     <Compile Include="Benchmarks\Benchmark.cs" />

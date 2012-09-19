@@ -9,9 +9,9 @@ namespace File_System_ES.Benchmarks
 {
     public class BPlusTree : Benchmark
     {
-        String_BPlusTree<int> tree;
+        String_BPlusTree<string> tree;
         Stream indexStream;
-        File_System_ES.Append.ISerializer<int> serializer = new Int_Serializer();
+        File_System_ES.Append.ISerializer<string> serializer = new String_Serializer();
 
         public BPlusTree()
         {
@@ -36,9 +36,9 @@ namespace File_System_ES.Benchmarks
 
             var dataStream = new FileStream(dataFile, FileMode.OpenOrCreate);
 
-            var appendBpTree = new Append.BPlusTree<int>(metadataStream, indexStream, 
+            var appendBpTree = new Append.BPlusTree<string>(metadataStream, indexStream, 
                 dataStream, 128, serializer);
-            tree = new String_BPlusTree<int>(appendBpTree);
+            tree = new String_BPlusTree<string>(appendBpTree);
 
         }
 
@@ -51,7 +51,7 @@ namespace File_System_ES.Benchmarks
                 for (var j = i; j < i + batch; j++)
                 {
                     var g = Guid.NewGuid();
-                    tree.Put(j , "text about " + j);
+                    tree.Put(j +"", "text about " + j);
                 }
                 tree.Commit();
             }
@@ -105,8 +105,8 @@ namespace File_System_ES.Benchmarks
                 for (var j = i; j < i + batch; j++)
                 {
                     var g = Guid.NewGuid();
-                    tree.Put(j , "text about " + j);
-                    //result = tree.Get(j+"");
+                    tree.Put(j + "", "text about " + j);
+                    result = tree.Get(j+"");
                     //for (int k = j; k >= 0; k--)
                     //    result = tree.Get(k +"");
                 }
