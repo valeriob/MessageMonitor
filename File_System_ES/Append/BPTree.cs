@@ -11,7 +11,7 @@ namespace File_System_ES.Append
     public partial class BPlusTree<T> : IBPlusTree<T> where T: IComparable<T>, IEquatable<T>
     {
         public Node<T> Root { get; protected set; }
-        Pending_Changes<T> Pending_Changes;
+        IPending_Changes<T> Pending_Changes;
 
         protected Stream Index_Stream { get; set; }
         protected Stream Data_Stream { get; set; }
@@ -19,7 +19,6 @@ namespace File_System_ES.Append
         
         protected int Size { get; set; }
 
-        //public List<Block_Group> Empty_Slots = new List<Block_Group>();
         public Dictionary<long, Node<T>> Cached_Nodes { get; set; }
 
         public int Block_Size { get; protected set; }
@@ -45,7 +44,7 @@ namespace File_System_ES.Append
             _index_Pointer = Math.Max(8, indexStream.Length);
             _data_Pointer = Data_Stream.Length;
 
-            Pending_Changes = new Pending_Changes<T>(Index_Stream, Block_Size, _index_Pointer, Node_Factory);
+            Pending_Changes = new File_System_ES.Append.Pending_Changes.Pending_Changes<T>(Block_Size, _index_Pointer, Node_Factory);
             Init();
         }
 
@@ -53,7 +52,7 @@ namespace File_System_ES.Append
         {
             if (!Pending_Changes.Has_Pending_Changes())
                 return;
-            foreach (var address in Pending_Changes.Freed_Empty_Slots)
+            foreach (var address in Pending_Changes.Get_Freed_Empty_Slots())
                 Cache.Invalidate(address);
 
             var newRoot = Pending_Changes.Commit(Index_Stream);

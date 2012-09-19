@@ -5,12 +5,11 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace File_System_ES.Append
+namespace File_System_ES.Append.Pending_Changes
 {
-    public class Pending_Changes<T> where T: IComparable<T>, IEquatable<T>
+    public class Pending_ChangesV2<T> : IPending_Changes<T> where T: IComparable<T>, IEquatable<T>
     {
         Node_Factory<T> Node_Factory;
-        Stream Index_Stream;
         int Block_Size;
         Node<T> Uncommitted_Root;
 
@@ -18,7 +17,7 @@ namespace File_System_ES.Append
         private long _index_Pointer;
         List<Node<T>> Nodes;
         List<Block_Group> Empty_Slots;
-        public List<long> Freed_Empty_Slots;
+        List<long> Freed_Empty_Slots;
         List<Node<T>> Pending_Nodes;
 
         Dictionary<long, Block> _base_Address_Index = new Dictionary<long, Block>();
@@ -28,11 +27,10 @@ namespace File_System_ES.Append
         public IEnumerable<Node<T>> Last_Cached_Nodes() { return Nodes; }
         public List<Block_Group> Get_Empty_Slots() { return Empty_Slots; }
         public Node<T> Get_Uncommitted_Root() { return Uncommitted_Root; }
+        public IEnumerable<long> Get_Freed_Empty_Slots() { return Freed_Empty_Slots; }
 
-
-        public Pending_Changes(Stream index_Stream, int blockSize, long index_Pointer,  Node_Factory<T> node_Factory )
+        public Pending_ChangesV2(int blockSize, long index_Pointer, Node_Factory<T> node_Factory)
         {
-            Index_Stream = index_Stream;
             Block_Size = blockSize;
             Node_Factory = node_Factory;
 
@@ -310,8 +308,8 @@ namespace File_System_ES.Append
                 for (int i = 0; i < toUpdate.Count; i++)
                     Node_Factory.To_Bytes_In_Buffer(toUpdate[i], buffer, i * Block_Size);
 
-                Index_Stream.Seek(block.Base_Address(), SeekOrigin.Begin);
-                Index_Stream.Write(buffer, 0, buffer.Length);
+                indexStream.Seek(block.Base_Address(), SeekOrigin.Begin);
+                indexStream.Write(buffer, 0, buffer.Length);
             }
 
             foreach (var block in blocks)
@@ -325,11 +323,10 @@ namespace File_System_ES.Append
             foreach (var node in pending_Nodes_)
                 node.Is_Volatile = false;
 
-            Index_Stream.Flush();
             Nodes.Clear();
             Nodes.AddRange(Pending_Nodes);
             Pending_Nodes.Clear();
-            Index_Stream.Flush();
+            indexStream.Flush();
 
             Add_Block_Address_To_Available_Space();
             Freed_Empty_Slots.Clear();
@@ -355,64 +352,19 @@ namespace File_System_ES.Append
             }
         }
 
-        internal void Clean_Root()
+        public void Clean_Root()
         {
             Uncommitted_Root = null;
             // dispose nodes
         }
 
-        internal bool Has_Pending_Changes()
+        public bool Has_Pending_Changes()
         {
             return Uncommitted_Root != null;
         }
     }
 
-    public struct Block_Group
-    {
-        public int Length { get; set; }
-        public Dictionary<long,Block> Blocks { get; set; }
+ 
 
-        public override string ToString()
-        {
-            return string.Format("Length {0}, # {1}", Length, Blocks.Count);
-        }
-    }
-
-
-    public class Length_Comparer : IComparer<Block_Group>
-    {
-        public long Length { get; set; }
-        public Length_Comparer(long length)
-        {
-            Length = length;
-        }
-
-        public int Compare(Block_Group x, Block_Group y)
-        {
-            long dx = Length - x.Length;
-            long dy = Length - y.Length;
-
-            if (dx == 0 && dy == 0)
-                return 0;
-
-            if (dx == 0)
-                return -1;
-            if (dy == 0)
-                return 1;
-
-            if (dx < 0 && dy < 0)
-                return Math.Sign(dy - dx);
-
-            if (dx > 0 && dy > 0)
-                return Math.Sign(dx - dy);
-
-            if (dx > 0 && dy < 0)
-                return 1;
-
-            if (dx < 0 && dy > 0)
-                return -1;
-
-            return 0;
-        }
-    }
+   
 }

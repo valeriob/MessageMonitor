@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace File_System_ES.Append
+namespace File_System_ES.Append.Pending_Changes
 {
     public class Empty_Space
     {
