@@ -21,45 +21,59 @@ namespace File_System_ES.Append
 
         protected void Write_Node(Node<T> node)
         {
-            Pending_Changes.Free_Address(node.Address);
             Pending_Changes.Append_Node(node);
         }
 
-        protected Node<T> Read_Node(Node<T> parent, long address)
+        protected void Renew_Node_And_Dispose_Space(Node<T> node)
         {
-            if (Pending_Changes != null)
-            {
-                var cachedNode = Pending_Changes.Last_Cached_Nodes().SingleOrDefault(n => n.Address == address);
-                if (cachedNode != null)
-                {
-                    cache_hits++;
-                    return cachedNode;
-                }
-            }
-            //if (Cached_Nodes.ContainsKey(address))
-            //{
-            //    cache_hits++;
-            //    return Cached_Nodes[address];
-            //}
+            Pending_Changes.Free_Address(node.Address);
+            node.Is_Volatile = true;
+            node.Address = 0;
+        }
 
-            cache_misses++;
-
+        protected Node<T> Read_Root(long address)
+        {
             var buffer = new byte[Block_Size];
 
             Index_Stream.Seek(address, SeekOrigin.Begin);
             Index_Stream.Read(buffer, 0, buffer.Length);
 
-            if (_readMemory_Count.ContainsKey(address))
-                _readMemory_Count[address] += 1;
-            else
-                _readMemory_Count[address] = 1;
-
             var node = Node_Factory.From_Bytes(buffer, Size);
-            node.Parent = parent;
             node.Address = address;
-
-            //Cached_Nodes[address] = node;
             return node;
+        }
+
+        protected Node<T> Read_Node_From_Pointer(Node<T> parent, int key_Index)
+        {
+             long address = parent.Pointers[key_Index];
+             
+             var node = Cache.Get(address);
+             if (node == null)
+             {
+                 node = Read_Node(address);
+                 Cache.Put(address, node);
+             }
+             else
+             {
+                 node = Node_Factory.Create_New_One_Detached_Like_This(node);
+             }
+             //var node = Read_Node(address);
+
+             node.Is_Volatile = false;
+             node.Parent = parent;
+             node.Address = address;
+             parent.Children[key_Index] = node;
+             return node;
+        }
+
+        protected Node<T> Read_Node(long address)
+        {
+            var buffer = new byte[Block_Size];
+
+            Index_Stream.Seek(address, SeekOrigin.Begin);
+            Index_Stream.Read(buffer, 0, buffer.Length);
+
+            return Node_Factory.From_Bytes(buffer, Size);
         }
 
         protected void Write_Data(byte[] value, T key, int version)

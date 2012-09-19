@@ -8,9 +8,6 @@ namespace File_System_ES.Append
 {
     public partial class BPlusTree<T>
     {
-        public Dictionary<long, int> _readMemory_Count = new Dictionary<long, int>();
-        public Dictionary<long, int> _writeMemory_Count = new Dictionary<long, int>();
-
         public long cache_hits;
         public long cache_misses;
 
@@ -41,6 +38,23 @@ namespace File_System_ES.Append
 
             Index_Stream.Seek(position, SeekOrigin.Begin);
             return new Usage { Invalid = invalid, Valid = valid };
+        }
+
+        public void Mark_As_Invalid(Stream index, long block_Address)
+        {
+            Index_Stream.Seek(block_Address, SeekOrigin.Begin);
+            Index_Stream.Write(BitConverter.GetBytes(-1), 0, 4);
+        }
+    }
+
+    public class Usage
+    {
+        public int Invalid { get; set; }
+        public int Valid { get; set; }
+
+        public override string ToString()
+        {
+            return string.Format("Valid : {0}, Invalid : {1}", Valid, Invalid);
         }
     }
 }

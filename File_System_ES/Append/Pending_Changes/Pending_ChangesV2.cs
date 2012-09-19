@@ -5,12 +5,11 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace File_System_ES.Append
+namespace File_System_ES.Append.Pending_Changes
 {
-    public class Pending_Changes<T> where T: IComparable<T>, IEquatable<T>
+    public class Pending_ChangesV2<T> : IPending_Changes<T> where T: IComparable<T>, IEquatable<T>
     {
         Node_Factory<T> Node_Factory;
-        Stream Index_Stream;
         int Block_Size;
         Node<T> Uncommitted_Root;
 
@@ -28,22 +27,20 @@ namespace File_System_ES.Append
         public IEnumerable<Node<T>> Last_Cached_Nodes() { return Nodes; }
         public List<Block_Group> Get_Empty_Slots() { return Empty_Slots; }
         public Node<T> Get_Uncommitted_Root() { return Uncommitted_Root; }
+        public IEnumerable<long> Get_Freed_Empty_Slots() { return Freed_Empty_Slots; }
 
-
-        public Pending_Changes(Stream index_Stream, int blockSize, long index_Pointer, 
-            List<Block_Group> emptySlots, Node_Factory<T> node_Factory )
+        public Pending_ChangesV2(int blockSize, long index_Pointer, Node_Factory<T> node_Factory)
         {
-            Index_Stream = index_Stream;
             Block_Size = blockSize;
             Node_Factory = node_Factory;
 
             Freed_Empty_Slots = new List<long>();
             Pending_Nodes = new List<Node<T>>();
             Nodes = new List<Node<T>>();
-            Empty_Slots = emptySlots; // TODO copy by value !?
+            Empty_Slots = new List<Block_Group>();
 
-            _base_Address_Index = Empty_Slots.SelectMany(s => s.Blocks.Select(m => m.Value)).ToDictionary(d => d.Base_Address());
-            _end_Address_Index = Empty_Slots.SelectMany(s => s.Blocks.Select(m => m.Value)).ToDictionary(d => d.End_Address());
+            _base_Address_Index = new Dictionary<long, Block>();
+            _end_Address_Index = new Dictionary<long, Block>();
 
             _index_Pointer = index_Pointer;
         }
@@ -128,18 +125,33 @@ namespace File_System_ES.Append
 
         protected void Fix_Block_Position_In_Groups(Block block, long old_Address, long new_Address, int old_Length, int new_Length)
         {
-            var group = Find_Block_Group(old_Length);
-            group.Value.Blocks.Remove(old_Address);
+            int index = -1;
+            for (int i = 0; i < Empty_Slots.Count; i++)
+                if (Empty_Slots[i].Length == old_Length)
+                    index = i;
 
+            var group = Empty_Slots[index];
+            
+            group.Blocks.Remove(old_Address);
+
+            if(group.Blocks.Count == 0)
+                Empty_Slots.RemoveAt(index);
             if (new_Length == 0)
                 return;
-            group = Find_Block_Group(new_Length);
-            if (group == null)
+
+            index = -1;
+            for (int i = 0; i < Empty_Slots.Count; i++)
+                if (Empty_Slots[i].Length == new_Length)
+                    index = i;
+
+            if (index == -1)
             {
-                group = new Block_Group { Length = new_Length, Blocks = new Dictionary<long,Block>() };
-                Empty_Slots.Add(group.Value);
+                group = new Block_Group { Length = new_Length, Blocks = new Dictionary<long, Block>() };
+                Empty_Slots.Add(group);
             }
-            group.Value.Blocks[new_Address] = block;
+            else
+                group = Empty_Slots[index];
+            group.Blocks[new_Address] = block;
         }
 
         protected List<Block_Usage> Look_For_Available_Blocks(int length)
@@ -153,7 +165,8 @@ namespace File_System_ES.Append
             while (enumerator.MoveNext() && length > 0 )
             {
                 var group = enumerator.Current;
-
+              //  if (group.Length <=  length / 10) // 5 * Block_Size)
+               //     continue;
                 var blocks = group.Blocks.Values.GetEnumerator();
                 while (blocks.MoveNext() && length > 0)
                 {
@@ -183,23 +196,20 @@ namespace File_System_ES.Append
             _end_Address_Index[block.End_Address()] = block;
         }
 
-
-        protected void Update_Addresses_From(Node<T>[] nodes, Node<T> root, Queue<long> addresses)
+        protected void Update_Addresses_From(Node<T> root, Queue<long> addresses)
         {
-            root.Address = addresses.Dequeue();
+            if(root.Is_Volatile)
+                root.Address = addresses.Dequeue();
             if (root.IsLeaf)
                 return;
 
-            for (int i = 0; i < nodes.Length; i++)
+            for (int i = 0; i < root.Key_Num + 1; i++)
             {
-                if (nodes[i].Parent != root)
+                if (root.Children[i] == null || !root.Children[i].Is_Volatile)
                     continue;
 
-                var old_Child_Address = nodes[i].Address;
-
-                Update_Addresses_From(nodes, nodes[i], addresses);
-
-                root.Update_Child_Address(old_Child_Address, nodes[i].Address);
+                Update_Addresses_From(root.Children[i], addresses);
+                root.Pointers[i] = root.Children[i].Address;
             }
         }
 
@@ -235,15 +245,37 @@ namespace File_System_ES.Append
             Pending_Nodes.Add(node);
         }
 
-        public int Appends_Count;
-        public int Total_Blocks_Count;
-
         public void Append_New_Root(Node<T> root)
         {
-            var blocks = Look_For_Available_Blocks(Pending_Nodes.Count * Block_Size);
-            //blocks.Clear();
-            Total_Blocks_Count += blocks.Count;
-            Appends_Count++;
+            Uncommitted_Root = root;
+        }
+
+        public int Commit_Count;
+        public int Nodes_Count;
+        public int Blocks_Count;
+        public Dictionary<int, int> Blocks_Count_By_Lenght = new Dictionary<int, int>();
+
+        public Node<T> Commit(Stream indexStream)
+        {
+            var pending_Nodes_ = new List<Node<T>>();
+
+            Find_All_Pending_Nodes_From(pending_Nodes_, Uncommitted_Root);
+
+            int neededBytes = Block_Size * pending_Nodes_.Count;
+
+            var blocks = Look_For_Available_Blocks(neededBytes);
+
+            Blocks_Count += blocks.Count;
+            Nodes_Count += pending_Nodes_.Count;
+            Commit_Count++;
+
+            foreach (var block in blocks)
+            {
+                if (Blocks_Count_By_Lenght.ContainsKey(block.Length))
+                    Blocks_Count_By_Lenght[block.Length]++;
+                else
+                    Blocks_Count_By_Lenght[block.Length] = 1;
+            }
 
             var block_At_End_Of_File = new Block_Usage(new Block(_index_Pointer, int.MaxValue));
 
@@ -252,12 +284,12 @@ namespace File_System_ES.Append
 
             var addressesQueue = new Queue<long>();
             foreach (var block in blocks)
-                for (int i = 0; i < block.Length && Pending_Nodes.Count > addressesQueue.Count; i += Block_Size)
+                for (int i = 0; i < block.Length && pending_Nodes_.Count > addressesQueue.Count; i += Block_Size)
                     addressesQueue.Enqueue(block.Base_Address() + i);
 
-            Update_Addresses_From(Pending_Nodes.ToArray(), root, addressesQueue);
+            Update_Addresses_From( Uncommitted_Root, addressesQueue);
 
-            var nodes = new Queue<Node<T>>(Pending_Nodes.OrderBy(d => d.Address));
+            var nodes = new Queue<Node<T>>(pending_Nodes_.OrderBy(d => d.Address));
 
             foreach (var block in blocks)
             {
@@ -276,76 +308,63 @@ namespace File_System_ES.Append
                 for (int i = 0; i < toUpdate.Count; i++)
                     Node_Factory.To_Bytes_In_Buffer(toUpdate[i], buffer, i * Block_Size);
 
-                Index_Stream.Seek(block.Base_Address(), SeekOrigin.Begin);
-                Index_Stream.Write(buffer, 0, buffer.Length);
+                indexStream.Seek(block.Base_Address(), SeekOrigin.Begin);
+                indexStream.Write(buffer, 0, buffer.Length);
             }
 
             foreach (var block in blocks)
             {
                 if (block == block_At_End_Of_File)
-                   _index_Pointer = block.Base_Address() + block.Used_Length;
+                    _index_Pointer = block.Base_Address() + block.Used_Length;
                 else
                     Block_Usage_Finished(block);
             }
 
-            Index_Stream.Flush();
+            foreach (var node in pending_Nodes_)
+                node.Is_Volatile = false;
+
             Nodes.Clear();
             Nodes.AddRange(Pending_Nodes);
             Pending_Nodes.Clear();
-            //Freed_Empty_Slots.Clear();
-            Uncommitted_Root = root;
+            indexStream.Flush();
+
+            Add_Block_Address_To_Available_Space();
+            Freed_Empty_Slots.Clear();
+
+            var newRoot = Node_Factory.Create_New_One_Like_This(Uncommitted_Root);
+            for (int i = 0; i < newRoot.Key_Num + 1; i++)
+                newRoot.Children[i] = null;
+            return newRoot;
         }
 
 
+        protected void Find_All_Pending_Nodes_From(List<Node<T>> nodes, Node<T> root, bool only_Volatile_Nodes = true)
+        {
+            if(root.Is_Volatile && only_Volatile_Nodes || ! only_Volatile_Nodes)
+                nodes.Add(root);
+            for (int i = 0; i < root.Key_Num + 1; i++)
+            {
+                var child = root.Children[i];
+                if (child == null || (!child.Is_Volatile && only_Volatile_Nodes))
+                    continue;
 
+                Find_All_Pending_Nodes_From(nodes, child);
+            }
+        }
+
+        public void Clean_Root()
+        {
+            Uncommitted_Root = null;
+            // dispose nodes
+        }
+
+        public bool Has_Pending_Changes()
+        {
+            return Uncommitted_Root != null;
+        }
     }
 
-    public struct Block_Group
-    {
-        public int Length { get; set; }
-        public Dictionary<long,Block> Blocks { get; set; }
+ 
 
-        public override string ToString()
-        {
-            return string.Format("Length {0}, # {1}", Length, Blocks.Count);
-        }
-    }
-
-
-    public class Length_Comparer : IComparer<Block_Group>
-    {
-        public long Length { get; set; }
-        public Length_Comparer(long length)
-        {
-            Length = length;
-        }
-
-        public int Compare(Block_Group x, Block_Group y)
-        {
-            long dx = Length - x.Length;
-            long dy = Length - y.Length;
-
-            if (dx == 0 && dy == 0)
-                return 0;
-
-            if (dx == 0)
-                return -1;
-            if (dy == 0)
-                return 1;
-
-            if (dx < 0 && dy < 0)
-                return Math.Sign(dy - dx);
-
-            if (dx > 0 && dy > 0)
-                return Math.Sign(dx - dy);
-
-            if (dx > 0 && dy < 0)
-                return 1;
-
-            if (dx < 0 && dy > 0)
-                return -1;
-
-            return 0;
-        }
-    }
+   
 }
